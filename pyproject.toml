@@ -1,11 +1,11 @@
 [tool.poetry]
-name = "gli-py"
-version = "0.0.18"
+name = "gli4py"
+version = "0.0.1"
 description = "A python 3 API wrapper for GL-inet routers for consumption by Home Assistant"
 authors = ["HarvsG <doctor@codingdoctor.co.uk>"]
 license = "GNU GENERAL PUBLIC LICENSE"
 readme = "README.md"
-packages = [{include = "gli_py"}]
+packages = [{include = "gli4py"}]
 
 [tool.poetry.dependencies]
 python = "^3.8"

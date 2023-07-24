@@ -1,7 +1,7 @@
 import unittest
 import asyncio
 import pytest
-from gli_py import GLinet
+from gli4py import GLinet
 
 router = GLinet(base_url="http://192.168.0.1/cgi-bin/api/")
 
