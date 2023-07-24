@@ -88,6 +88,15 @@ class GLinet(Consumer):
             }
             )
         return await self._request(login_data)
+    
+    async def router_reachable(self, username:str) -> bool:
+        try:
+            res = await self._challenge(username)
+            if res:
+                return True
+        except:
+            return False
+        return False
 
     async def login(self, username: str, password: str) -> None:
         
