@@ -14,23 +14,23 @@ class TokenError(Exception):
     '''raised when the router responds but with a -1 code'''
 
 
-def raise_for_status(response: Response):
+def raise_for_status(response: Response) -> dict:
     """Checks whether or not the response was successful."""
     if 200 <= response.status < 300:
-        # Pass through the response.
-        res = loads(response.text())
+        res: dict = loads(response.text())
+        if 'result' in res:
+            return res['result']
         # Gl-inet's api uses its own error codes that are returned in
         # status 200 messages - this is out of spec so we must handle it
-        if res['code'] == -1:
+        if 'error' not in res:
+            raise ConnectionError("Unexpected response from GLinet router %s" % res)
+        if res['error']['code'] == -1:
             raise TokenError("Request returned error code -1 (InvalidAuth), is the token expired or the passowrd wrong?")
-        if res['code'] in [-204,-203, -200]: # these error codes represent non-error off states of some endpoints
-            return res
-        if res['code'] < 0:
-            if 'msg' not in res:
-                res['msg'] = "null"
+        if res['error']['code'] < 0:
+            if 'message' not in res['error']:
+                res['error']['message'] = "null"
 
-            raise NonZeroResponse("Request returned error code %s with message:' %s'. Full response %s" % (res['code'], res['msg'],res))
-        return res
+            raise NonZeroResponse("Request returned error code %s with message:' %s'. Full response %s" % (res['error']['code'], res['error']['message'],res))
 
     raise UnsuccessfulRequest(response.url)
 

@@ -8,8 +8,9 @@ readme = "README.md"
 packages = [{include = "gli4py"}]
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.11"
 uplink = "0.9.7"
+passlib = "^1.7.4"
 
 [tool.poetry.group.dev.dependencies]
 uplink = "^0.9.7"

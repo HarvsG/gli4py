@@ -1,9 +1,9 @@
 import unittest
 import asyncio
 import pytest
-from gli4py import GLinet
+from gli4py.glinet import GLinet
 
-router = GLinet(base_url="http://192.168.0.1/cgi-bin/api/")
+router = GLinet(base_url="http://192.168.0.1/rpc")
 
 models = [
 	"mt1300",
@@ -44,35 +44,20 @@ def event_loop():
     yield loop
     loop.close()
     
-@pytest.mark.asyncio
-async def test_router_model() -> None:
-	response = await router.router_model()
-	assert(response['code']==0)
-	assert(response['model'] in models)
-	print(response)
-
-@pytest.mark.asyncio
-async def test_router_hello() -> None:
-	response = await router.router_hello()
-	assert(response['code']==0)
-	assert(response['model'] in models)
-	print(response)
-
 
 @pytest.mark.asyncio
 async def test_login() -> None:
 	with open('router_pwd', 'r') as file:
 		pwd = str(file.read())
 	assert(not router.logged_in)
-	await router.login(pwd)
+	await router.login("root", pwd)
 	assert(router.logged_in)
-	print("router.token")
-	print(router.token)
-	print("-----------------")
-		
+	print(router.sid)
+
 @pytest.mark.asyncio
 async def test_router_mac() -> None:
 	response = await router.router_mac()
+	assert('factory_mac' in response)
 	print(response)
 
 @pytest.mark.asyncio
@@ -81,11 +66,6 @@ async def test_connected_clients() -> None:
 	print(len(clients))
 	assert(len(clients) > 0)
 
-@pytest.mark.asyncio
-async def test_client_vpn_status() -> None:
-	response = await router.client_vpn_status()
-	print("vpn status")
-	print(response)
 
 @pytest.mark.asyncio
 async def test_wireguard_client_list() -> None:
@@ -94,44 +74,24 @@ async def test_wireguard_client_list() -> None:
 	#assert(response['enable'] in [True,False])
 
 @pytest.mark.asyncio
-async def test_wireguard_client_states() -> None:
+async def test_wireguard_client_state() -> None:
 	response = await router.wireguard_client_state()
 	print(response)
-	assert(response['enable'] in [True,False])
+	assert(response['status'] in [0,1,2])
 	
-# @pytest.mark.asyncio
-# async def test_wireguard_client_stop() -> None:
-# 	response = await router.wireguard_client_stop()
-# 	print("stoping wg client")
-# 	print(response)
-# 	#assert(response['code'] == 0)
-
-# @pytest.mark.asyncio
-# async def test_wireguard_client_start() -> None:
-# 	response = await router.wireguard_client_state()
-# 	wg_server_name = response['main_server']
-# 	response = await router.wireguard_client_start(wg_server_name)
-# 	print("starting wg client")
-# 	print(response)
-# 	#assert(response['code'] == 0)
-
-
-@pytest.mark.asyncio
-async def test_wan_ip() -> None:
-	response = await router.wan_ip()
-	print(response)
-	assert(response['online'] in [True,False])
 
 @pytest.mark.asyncio
 async def test_connected_to_internet() -> None:
 	response = await router.connected_to_internet()
 	print(response)
-	assert(response['reachable'] in [True,False])
+	assert(response['detected'] in [0,1,2,3])
+	assert('ip' in response)
 
 @pytest.mark.asyncio
 async def test_ping() -> None:
 	response = await router.ping("google.com")
-	print(response)
-	response = await router.ping("10.0.0.10")
-	print(response)
-	#assert(response['reachable'] in [True,False])
+	assert(response)
+	response = await router.ping("8.8.8.8")
+	assert(response)
+	response = await router.ping("0.0.0.1")
+	assert(not response)
