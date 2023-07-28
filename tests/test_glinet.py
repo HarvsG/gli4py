@@ -44,6 +44,11 @@ def event_loop():
     yield loop
     loop.close()
     
+@pytest.mark.asyncio
+async def test_router_reachable() -> None:
+	response = await router.router_reachable()
+	assert(response)
+	print(response)
 
 @pytest.mark.asyncio
 async def test_login() -> None:
@@ -53,6 +58,15 @@ async def test_login() -> None:
 	await router.login("root", pwd)
 	assert(router.logged_in)
 	print(router.sid)
+
+
+@pytest.mark.asyncio
+async def test_router_info() -> None:
+	response = await router.router_info()
+	assert('model' in response)
+	assert('firmware_version' in response)
+	assert('mac' in response)
+	print(response)
 
 @pytest.mark.asyncio
 async def test_router_mac() -> None:

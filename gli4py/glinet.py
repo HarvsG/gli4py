@@ -89,9 +89,10 @@ class GLinet(Consumer):
             )
         return await self._request(login_data)
     
-    async def router_reachable(self, username:str) -> bool:
+    async def router_reachable(self, username:str = 'root') -> bool:
         try:
             res = await self._challenge(username)
+            print(res)
             if res:
                 return True
         except:
@@ -133,7 +134,10 @@ class GLinet(Consumer):
             raise KeyError("Parameter Exception:", e)
         except Exception as e:
             raise Exception("An unexpected error has occurred:", e)
-            
+
+    async def router_info(self) -> dict:
+        return await self._request(self.gen_sid_payload('call', ['system', 'get_info'], self.sid))
+
     async def router_mac(self) -> dict:
         return await self._request(self.gen_sid_payload('call', ['macclone', 'get_mac'], self.sid))
 
@@ -199,8 +203,8 @@ class GLinet(Consumer):
     async def wireguard_client_start(self, group_id: int, peer_id: int) -> dict:
         return await self._request(self.gen_sid_payload('call', ['wg-client', 'start', {"group_id":group_id,"peer_id":peer_id}], self.sid))
 
-    async def wireguard_client_stop(self, group_id: int, peer_id: int) -> dict:
-        return await self._request(self.gen_sid_payload('call', ['wg-client', 'stop', {"group_id":group_id,"peer_id":peer_id}], self.sid))
+    async def wireguard_client_stop(self) -> dict:
+        return await self._request(self.gen_sid_payload('call', ['wg-client', 'stop'], self.sid))
 
     @property
     def logged_in(self) -> bool:
