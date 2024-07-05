@@ -3,7 +3,7 @@ import asyncio
 import pytest
 from gli4py.glinet import GLinet
 
-router = GLinet(base_url="http://192.168.0.1/rpc")
+router = GLinet(base_url="http://192.168.0.4/rpc")
 
 models = [
 	"mt1300",

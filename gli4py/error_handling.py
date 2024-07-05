@@ -32,7 +32,7 @@ def raise_for_status(response: Response) -> dict:
 
             raise NonZeroResponse("Request returned error code %s with message:' %s'. Full response %s" % (res['error']['code'], res['error']['message'],res))
 
-    raise UnsuccessfulRequest(response.url)
+    raise UnsuccessfulRequest(response.status_code, response.url)
 
 #TODO
 # @uplink.error_handler

@@ -208,17 +208,21 @@ class GLinet(Consumer):
     async def wireguard_client_stop(self) -> dict:
         return await self._request(self.gen_sid_payload('call', ['wg-client', 'stop'], self.sid))
 
-    async def _tailscale_get_config(self) -> dict:
+    async def _tailscale_get_config(self) -> dict | False:
         """
         {'wan_enabled': False, 'lan_ip': '192.168.0.0/24', 'enabled': False, 'lan_enabled': True}
         {'detected': 2, 'dns': ['88.88.88.88'], 'gateway': '88.88.88.88', 'valid': False, 'netmask': '255.255.254.0', 'ip': '88.88.88.88'}
+        If tailscale is not available on the the device this will error.
         """
-        return await self._request(self.gen_sid_payload('call', ['tailscale', 'get_config'], self.sid))
+        try:
+            result = await self._request(self.gen_sid_payload('call', ['tailscale', 'get_config'], self.sid))
+        except:
+            return False
+        return result
     
     async def _tailscale_set_config(self, config_updates: dict[str, Any]) -> dict:
         current_config: dict[str, Any] = await self._request(self.gen_sid_payload('call', ['tailscale', 'get_config'], self.sid))
         new_config = current_config | config_updates
-        
         return await self._request(self.gen_sid_payload('call', ['tailscale', 'set_config', new_config], self.sid))
 
     async def _tailscale_state(self) -> dict:
