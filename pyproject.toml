@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "gli4py"
-version = "0.0.5"
+version = "0.0.6"
 description = "A python 3 API wrapper for GL-inet routers for consumption by Home Assistant"
 authors = ["HarvsG <doctor@codingdoctor.co.uk>"]
 license = "GNU GENERAL PUBLIC LICENSE"
