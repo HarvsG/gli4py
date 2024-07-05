@@ -1,9 +1,10 @@
 import unittest
 import asyncio
 import pytest
+from gli4py.enums import TailscaleConnection
 from gli4py.glinet import GLinet
 
-router = GLinet(base_url="http://192.168.0.4/rpc")
+router = GLinet(base_url="http://192.168.0.1/rpc")
 
 models = [
 	"mt1300",
@@ -92,12 +93,24 @@ async def test_wireguard_client_state() -> None:
 	response = await router.wireguard_client_state()
 	print(response)
 	assert(response['status'] in [0,1,2])
-	
+
 @pytest.mark.asyncio
-async def test_tailscale_state() -> None:
-	response = await router._tailscale_state()
+async def test_tailscale_status() -> None:
+	response = await router._tailscale_status()
 	print(response)
 	assert(dict(response).get('status', 0) in [1,2,3,4] or response == [])
+
+@pytest.mark.asyncio
+async def test_tailscale_connection() -> None:
+	response = await router.tailscale_connection_state()
+	print(response)
+	assert(response in [TailscaleConnection.Disconnected, TailscaleConnection.Connected])
+
+@pytest.mark.asyncio
+async def test_tailscale_configured() -> None:
+	response = await router.tailscale_configured()
+	print("Tailscale configured:", response)
+	assert(response in [True, False])
 
 @pytest.mark.asyncio
 async def test_tailscale_get_config() -> None:
@@ -126,7 +139,7 @@ async def test_connected_to_internet() -> None:
 
 @pytest.mark.asyncio
 async def test_ping() -> None:
-	response = await router.ping("google.com")
+	response = await router.ping("google.com") 
 	assert(response)
 	response = await router.ping("8.8.8.8")
 	assert(response)

@@ -1,18 +1,13 @@
 import asyncio
-from typing import Any, Optional, Self
+from typing import Any, Optional
 from requests import Response, exceptions
-import requests
-import json as JSON
 from uplink import (
     Consumer,
-    get,
     json,
     post,
     response_handler,
-    Field,
     AiohttpClient,
     timeout,
-    error_handler,
     Body)
 import hashlib
 from passlib.hash import md5_crypt, sha256_crypt, sha512_crypt
@@ -208,7 +203,7 @@ class GLinet(Consumer):
     async def wireguard_client_stop(self) -> dict:
         return await self._request(self.gen_sid_payload('call', ['wg-client', 'stop'], self.sid))
 
-    async def _tailscale_get_config(self) -> dict | False:
+    async def _tailscale_get_config(self) -> dict | bool:
         """
         {'wan_enabled': False, 'lan_ip': '192.168.0.0/24', 'enabled': False, 'lan_enabled': True}
         {'detected': 2, 'dns': ['88.88.88.88'], 'gateway': '88.88.88.88', 'valid': False, 'netmask': '255.255.254.0', 'ip': '88.88.88.88'}
@@ -225,18 +220,31 @@ class GLinet(Consumer):
         new_config = current_config | config_updates
         return await self._request(self.gen_sid_payload('call', ['tailscale', 'set_config', new_config], self.sid))
 
-    async def _tailscale_state(self) -> dict:
+    async def _tailscale_status(self) -> dict:
         """
         {'login_name': 'HarvsG@github', 'status': 3, 'address_v4': '100.92.1.100'}
         {'detected': 2, 'dns': ['88.88.88.89'], 'gateway': '88.88.88.88', 'valid': False, 'netmask': '255.255.254.0', 'ip': '88.88.88.88'}
-        If disconnected, returns []
+        If disconnected or not configured, returns []
         """
         return await self._request(self.gen_sid_payload('call', ['tailscale', 'get_status'], self.sid))
+
+    async def tailscale_connection_state(self) -> TailscaleConnection:
+        state: dict = dict(await self._tailscale_status())
+        if state == {}:
+            return TailscaleConnection.Disconnected
+        return TailscaleConnection(state.get('status',0))
+
+    async def tailscale_configured(self) -> bool:
+        if await self._tailscale_status() != []:
+            return True
+        if await self._tailscale_get_config() == False:
+            return False
+        return True
 
     async def tailscale_start(self, depth: int = 0) -> True:
         if depth > 10:
             raise ConnectionError("Tailscale attempted to connect 10 times with no success")
-        response: dict | list = await self._tailscale_state()
+        response: dict | list = await self._tailscale_status()
         if type(response) is list and response == []:
             await self._tailscale_set_config({'enabled':True})
             if depth > 0:
@@ -249,7 +257,7 @@ class GLinet(Consumer):
             return True
         if status == 4:
             await asyncio.sleep(3)
-            status = (await self._tailscale_state())['status']
+            status = (await self._tailscale_status())['status']
             if status != 3:
                 raise ConnectionError("Did not try to start tailscale as device reported 'Connecting' and then 3 seconds later '%s'", TailscaleConnection[status].name)
             return True
@@ -261,7 +269,7 @@ class GLinet(Consumer):
     async def tailscale_stop(self, depth: int = 0) -> True:
         if depth > 10:
             raise ConnectionError("Tailscale attempted to disconnect 10 times with no success")
-        response: dict | list = await self._tailscale_state()
+        response: dict | list = await self._tailscale_status()
         if type(response) is list and response == []:
             return True
         else:
