@@ -109,3 +109,10 @@ async def test_ping() -> None:
 	assert(response)
 	response = await router.ping("0.0.0.1")
 	assert(not response)
+
+@pytest.mark.asyncio
+async def test_tailscale_connection_state() -> None:
+	response = await router.tailscale_connection_state()
+	print(response)
+	assert(response['status'] in [0,1,2,3,4])
+	

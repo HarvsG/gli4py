@@ -206,6 +206,9 @@ class GLinet(Consumer):
     async def wireguard_client_stop(self) -> dict:
         return await self._request(self.gen_sid_payload('call', ['wg-client', 'stop'], self.sid))
 
+    async def tailscale_connection_state(self) -> dict:
+        return await self._request(self.gen_sid_payload('call', ['tailscale', 'get_status'], self.sid))
+
     @property
     def logged_in(self) -> bool:
         return self._logged_in
