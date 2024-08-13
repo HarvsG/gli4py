@@ -12,7 +12,7 @@ I thought it would be handy to develop a python 3 wrapper for the API for easy i
 
 ## Dev setup
 1. Clone the repo
-2. Ensure you have python 3 installed `python3 -V` or `python -V`
+2. Ensure you have python 3.11 or greater installed `python3 -V` or `python -V`
 3. Uses poetry for venv control `pip3 install poetry`
 4. `poetry config virtualenvs.in-project true` create the venvs in the project folder
 5. `poetry install`
