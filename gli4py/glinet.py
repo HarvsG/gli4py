@@ -235,8 +235,12 @@ class GLinet(Consumer):
         return TailscaleConnection(state.get('status',0))
 
     async def tailscale_configured(self) -> bool:
-        if await self._tailscale_status() != []:
-            return True
+        #TODO As per https://github.com/HarvsG/ha-glinet4-integration/issues/12 we should do some error handling here
+        try:
+            if await self._tailscale_status() != []:
+                return True
+        except Exception:
+            return False
         if await self._tailscale_get_config() == False:
             return False
         return True
