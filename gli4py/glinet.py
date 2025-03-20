@@ -178,11 +178,11 @@ class GLinet(Consumer):
     
     async def wifi_ifaces_get(self) -> dict:
         wifi_config = await self._wifi_config_get()
-        return [iface for dev in wifi_config.get('res', []) for iface in dev.get('ifaces')]
+        return {iface.get('name'):iface for dev in wifi_config.get('res', []) for iface in dev.get('ifaces')}
     
     async def wifi_iface_set_enabled(self, iface_name: str, enabled: bool) -> dict:
         ifaces = await self.wifi_ifaces_get()
-        if any(iface.get('name') == iface_name for iface in ifaces):
+        if iface_name in ifaces:
             return await self._wifi_config_set({'enabled': enabled, 'iface_name': iface_name})
         else:
             raise ValueError('iface_name does not exist')    
