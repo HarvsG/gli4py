@@ -135,6 +135,12 @@ class GLinet(Consumer):
     async def router_info(self) -> dict:
         return await self._request(self.gen_sid_payload('call', ['system', 'get_info'], self.sid))
 
+    async def router_get_status(self) -> dict:
+        return await self._request(self.gen_sid_payload('call', ['system', 'get_status'], self.sid))
+
+    async def router_get_load(self) -> dict:
+        return await self._request(self.gen_sid_payload('call', ['system', 'get_load'], self.sid))
+
     async def router_mac(self) -> dict:
         return await self._request(self.gen_sid_payload('call', ['macclone', 'get_mac'], self.sid))
 
