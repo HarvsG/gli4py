@@ -164,7 +164,6 @@ class GLinet(Consumer):
     async def list_all_clients(self) -> dict:
         return await self._request(self.gen_sid_payload('call', ['clients', 'get_list'], self.sid))
 
-    
     async def list_static_clients(self) -> dict:
         return await self._request(self.gen_sid_payload('call', ['lan', 'get_static_bind_list'], self.sid))
 
@@ -179,6 +178,23 @@ class GLinet(Consumer):
             if client['online'] is True:
                 clients[client['mac']] = client
         return clients
+
+    async def _wifi_config_get(self) -> dict:
+        return await self._request(self.gen_sid_payload('call', ['wifi', 'get_config'], self.sid))
+
+    async def _wifi_config_set(self, config: dict) -> dict:
+        return await self._request(self.gen_sid_payload('call', ['wifi', 'set_config', config], self.sid))
+    
+    async def wifi_ifaces_get(self) -> dict:
+        wifi_config = await self._wifi_config_get()
+        return {iface.get('name'):iface for dev in wifi_config.get('res', []) for iface in dev.get('ifaces')}
+    
+    async def wifi_iface_set_enabled(self, iface_name: str, enabled: bool) -> dict:
+        ifaces = await self.wifi_ifaces_get()
+        if iface_name in ifaces:
+            return await self._wifi_config_set({'enabled': enabled, 'iface_name': iface_name})
+        else:
+            raise ValueError('iface_name does not exist')    
 
     # VPN information
 
