@@ -144,9 +144,6 @@ class GLinet(Consumer):
     async def router_mac(self) -> dict:
         return await self._request(self.gen_sid_payload('call', ['macclone', 'get_mac'], self.sid))
 
-    async def router_reboot(self, delay: int = 0) -> dict:
-        return await self._request(self.gen_sid_payload('call', ['system', 'reboot',  {'delay': delay}], self.sid))
-
     async def ping(self, address) -> bool:
         """
         returns the stdout of the ping command if successful or "[]" if not successful
