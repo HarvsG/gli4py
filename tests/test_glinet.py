@@ -2,6 +2,7 @@ import unittest
 import asyncio
 import pytest
 from gli4py.enums import TailscaleConnection
+from gli4py.error_handling import NonZeroResponse
 from gli4py.glinet import GLinet
 
 router = GLinet(base_url="http://192.168.0.1/rpc")
@@ -70,17 +71,46 @@ async def test_router_info() -> None:
 	print(response)
 
 @pytest.mark.asyncio
+async def test_router_get_status() -> None:
+	response = await router.router_get_status()
+	assert('service' in response)
+	assert('network' in response)
+	assert('system' in response)
+	assert('wifi' in response)
+	system = response.get("system")
+	assert('uptime' in system)
+	assert('load_average' in system)
+	print(response)
+
+@pytest.mark.asyncio
+async def test_router_get_load() -> None:
+	response = await router.router_get_load()
+	assert('load_average' in response)
+	assert('memory_free' in response)
+	assert('memory_total' in response)
+	print(response)
+
+@pytest.mark.asyncio
 async def test_router_mac() -> None:
 	response = await router.router_mac()
 	assert('factory_mac' in response)
 	print(response)
 
 @pytest.mark.asyncio
+async def test_router_reboot() -> None:
+	response = await router.router_reboot()
+	print(response)
+	await asyncio.sleep(5)
+	while not await router.router_reachable():
+		await asyncio.sleep(1)
+	with pytest.raises(NonZeroResponse):
+		await router.router_info()
+
+@pytest.mark.asyncio
 async def test_connected_clients() -> None:
 	clients = await router.connected_clients()
 	print(len(clients))
 	assert(len(clients) > 0)
-
 
 @pytest.mark.asyncio
 async def test_wireguard_client_list() -> None:
