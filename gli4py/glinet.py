@@ -177,10 +177,56 @@ class GLinet(Consumer):
         return await self._request(self.gen_sid_payload('call', ['wifi', 'set_config', config], self.sid))
     
     async def wifi_ifaces_get(self) -> dict:
+        """returns a dictionary of wifi interfaces.
+        Example output:
+        {
+            "wifi2g": {
+                "enabled": true,
+                "encryption": "sae-mixed",
+                "hidden": false,
+                "guest": false,
+                "ssid": "GL-MT6000-2G",
+                "name": "wifi2g",
+                "key": "goodlife"
+            },
+            "guest2g": {
+                "enabled": false,
+                "encryption": "psk2",
+                "hidden": false,
+                "guest": true,
+                "ssid": "GL-MT6000-2G-Guest",
+                "name": "guest2g",
+                "key": "goodlife"
+            },
+            "wifi5g": {
+                "enabled": true,
+                "encryption": "sae-mixed",
+                "hidden": false,
+                "guest": false,
+                "ssid": "GL-MT6000-5G",
+                "name": "wifi5g",
+                "key": "goodlife"
+            },
+            "guest5g": {
+                "enabled": true,
+                "encryption": "psk2",
+                "hidden": false,
+                "guest": true,
+                "ssid": "GL-MT6000-5G-Guest",
+                "name": "guest5g",
+                "key": "goodlife"
+            }
+        }
+        """
         wifi_config = await self._wifi_config_get()
-        return {iface.get('name'):iface for dev in wifi_config.get('res', []) for iface in dev.get('ifaces')}
+        return {
+            iface.get("name"): iface
+            for dev in wifi_config.get("res", [])
+            for iface in dev.get("ifaces")
+        }
     
     async def wifi_iface_set_enabled(self, iface_name: str, enabled: bool) -> dict:
+        """enable / disable wifi interface by name as found by wifi_ifaces_get()."""
         ifaces = await self.wifi_ifaces_get()
         if iface_name in ifaces:
             return await self._wifi_config_set({'enabled': enabled, 'iface_name': iface_name})
