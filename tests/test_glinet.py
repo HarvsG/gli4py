@@ -81,6 +81,29 @@ async def test_connected_clients() -> None:
 	print(len(clients))
 	assert(len(clients) > 0)
 
+@pytest.mark.asyncio
+async def test_wifi_ifaces_get() -> None:
+	wifi_ifaces = await router.wifi_ifaces_get()
+	print(wifi_ifaces)
+	for iface in wifi_ifaces:
+		assert('enabled' in iface)
+		assert('ssid' in iface)
+		assert('name' in iface)
+		assert('key' in iface)
+
+@pytest.mark.asyncio
+async def test_wifi_ifaces_set_enabled() -> None:
+	wifi_ifaces = await router.wifi_ifaces_get()
+	iface = next(iter(wifi_ifaces.values()))
+	iface_enabled = iface.get("enabled")
+
+	response = await router.wifi_iface_set_enabled(iface.get("name"), not iface_enabled)
+	print(response)
+	await asyncio.sleep(1)
+
+	wifi_ifaces2 = await router.wifi_ifaces_get()
+	iface_enabled_after = wifi_ifaces2.get(iface.get("name")).get("enabled")
+	assert(iface_enabled_after != iface_enabled)
 
 @pytest.mark.asyncio
 async def test_wireguard_client_list() -> None:
