@@ -31,8 +31,7 @@ jobs:
           pip3 install poetry
           poetry config virtualenvs.in-project true
           poetry install
-          poetry shell
-          python -m build
+          poetry run python -m build
 
       - name: Upload distributions
         uses: actions/upload-artifact@v4
