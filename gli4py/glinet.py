@@ -176,7 +176,7 @@ class GLinet(Consumer):
     async def _wifi_config_set(self, config: dict) -> dict:
         return await self._request(self.gen_sid_payload('call', ['wifi', 'set_config', config], self.sid))
     
-    async def wifi_ifaces_get(self) -> dict:
+    async def wifi_ifaces_get(self) -> dict[str,dict[str,Any]]:
         """returns a dictionary of wifi interfaces.
         Example output:
         {
