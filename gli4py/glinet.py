@@ -135,8 +135,14 @@ class GLinet(Consumer):
     async def router_info(self) -> dict:
         return await self._request(self.gen_sid_payload('call', ['system', 'get_info'], self.sid))
 
-    async def router_get_status(self) -> dict:
-        return await self._request(self.gen_sid_payload('call', ['system', 'get_status'], self.sid))
+    async def router_get_status(self) -> dict[str,list[dict[str,Any]]]:
+        response:dict[str,list[dict[str,Any]]] = await self._request(self.gen_sid_payload('call', ['system', 'get_status'], self.sid))
+
+        # remove wifi passwords
+        if "wifi" in response:
+            for i, _ in enumerate(response["wifi"]):
+                response["wifi"][i]["passwd"]=None
+        return response
 
     async def router_get_load(self) -> dict:
         return await self._request(self.gen_sid_payload('call', ['system', 'get_load'], self.sid))
