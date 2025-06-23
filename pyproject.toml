@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "gli4py"
-version = "0.0.9"
+version = "0.0.10"
 description = "A python 3 API wrapper for GL-inet routers for consumption by Home Assistant"
 authors = ["HarvsG <doctor@codingdoctor.co.uk>"]
 license = "GNU GENERAL PUBLIC LICENSE"
@@ -9,11 +9,11 @@ packages = [{include = "gli4py"}]
 
 [tool.poetry.dependencies]
 python = "^3.11"
-uplink = "0.9.7"
+uplink = "0.10.0"
 passlib = "^1.7.4"
 
 [tool.poetry.group.dev.dependencies]
-uplink = "^0.9.7"
+uplink = "^0.10.0"
 requests = "^2.27.1"
 aiohttp = "^3.8.4"
 asyncio = "^3.4.3"
