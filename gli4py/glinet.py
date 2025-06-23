@@ -147,7 +147,7 @@ class GLinet(Consumer):
     
     async def connected_to_internet(self) -> dict:
         """Is the internet reachable
-        {"detected":2,"dns":["82.15.176.1"],"gateway":"82.15.178.1","valid":false,"netmask":"255.255.254.0","ip":"82.15.178.44"}
+        {"detected":2,"dns":["82.15.176.1"],"gateway":"82.15.178.1","valid":False,"netmask":"255.255.254.0","ip":"82.15.178.44"}
         upper-level DHCP server status [0: disable; 1:enabled and have pointed the gateway to the bypass route; 2: enabled; 3：the cable is not connected]
         """
         return await self._request(self.gen_sid_payload('call', ['edgerouter', 'get_status'], self.sid))
@@ -176,42 +176,43 @@ class GLinet(Consumer):
     async def _wifi_config_set(self, config: dict) -> dict:
         return await self._request(self.gen_sid_payload('call', ['wifi', 'set_config', config], self.sid))
     
-    async def wifi_ifaces_get(self) -> dict[str,dict[str,Any]]:
+    async def wifi_ifaces_get(self, redact_keys = True) -> dict[str,dict[str,Any]]:
         """returns a dictionary of wifi interfaces.
+        If redact_keys, all key values will be set to None
         Example output:
         {
             "wifi2g": {
-                "enabled": true,
+                "enabled": True,
                 "encryption": "sae-mixed",
-                "hidden": false,
-                "guest": false,
+                "hidden": False,
+                "guest": False,
                 "ssid": "GL-MT6000-2G",
                 "name": "wifi2g",
                 "key": "goodlife"
             },
             "guest2g": {
-                "enabled": false,
+                "enabled": False,
                 "encryption": "psk2",
-                "hidden": false,
-                "guest": true,
+                "hidden": False,
+                "guest": True,
                 "ssid": "GL-MT6000-2G-Guest",
                 "name": "guest2g",
                 "key": "goodlife"
             },
             "wifi5g": {
-                "enabled": true,
+                "enabled": True,
                 "encryption": "sae-mixed",
-                "hidden": false,
-                "guest": false,
+                "hidden": False,
+                "guest": False,
                 "ssid": "GL-MT6000-5G",
                 "name": "wifi5g",
                 "key": "goodlife"
             },
             "guest5g": {
-                "enabled": true,
+                "enabled": True,
                 "encryption": "psk2",
-                "hidden": false,
-                "guest": true,
+                "hidden": False,
+                "guest": True,
                 "ssid": "GL-MT6000-5G-Guest",
                 "name": "guest5g",
                 "key": "goodlife"
@@ -220,7 +221,10 @@ class GLinet(Consumer):
         """
         wifi_config = await self._wifi_config_get()
         return {
-            iface.get("name"): iface
+            iface.get("name"): {
+                **iface,
+                "key": None if redact_keys else iface.get("key")
+            }
             for dev in wifi_config.get("res", [])
             for iface in dev.get("ifaces")
         }
@@ -254,7 +258,7 @@ class GLinet(Consumer):
 
     async def wireguard_client_state(self) -> dict:
         """
-        {"rx_bytes":0,"ipv6":"","tx_bytes":0,"domain":"vpn.example.com","group_id":7707,"port":51820,"name":"TheOracle","peer_id":1341,"status":0,"proxy":true,"log":"","ipv4":""}
+        {"rx_bytes":0,"ipv6":"","tx_bytes":0,"domain":"vpn.example.com","group_id":7707,"port":51820,"name":"TheOracle","peer_id":1341,"status":0,"proxy":True,"log":"","ipv4":""}
         status 0:not start 1:connected 2:connecting
         """
         return await self._request(self.gen_sid_payload('call', ['wg-client', 'get_status'], self.sid))
