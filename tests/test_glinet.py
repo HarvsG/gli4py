@@ -2,6 +2,7 @@ import unittest
 import asyncio
 import pytest
 from gli4py.enums import TailscaleConnection
+from gli4py.error_handling import NonZeroResponse
 from gli4py.glinet import GLinet
 
 router = GLinet(base_url="http://192.168.0.1/rpc")
@@ -60,13 +61,32 @@ async def test_login() -> None:
 	assert(router.logged_in)
 	print(router.sid)
 
-
 @pytest.mark.asyncio
 async def test_router_info() -> None:
 	response = await router.router_info()
 	assert('model' in response)
 	assert('firmware_version' in response)
 	assert('mac' in response)
+	print(response)
+
+@pytest.mark.asyncio
+async def test_router_get_status() -> None:
+	response = await router.router_get_status()
+	assert('service' in response)
+	assert('network' in response)
+	assert('system' in response)
+	assert('wifi' in response)
+	system = response.get("system")
+	assert('uptime' in system)
+	assert('load_average' in system)
+	print(response)
+
+@pytest.mark.asyncio
+async def test_router_get_load() -> None:
+	response = await router.router_get_load()
+	assert('load_average' in response)
+	assert('memory_free' in response)
+	assert('memory_total' in response)
 	print(response)
 
 @pytest.mark.asyncio
@@ -168,3 +188,15 @@ async def test_ping() -> None:
 	assert(response)
 	response = await router.ping("0.0.0.1")
 	assert(not response)
+
+@pytest.mark.asyncio
+async def test_router_reboot() -> None:
+	response = await router.router_reboot()
+	print(response)
+	print("waiting `15s` for router to shutdown")
+	await asyncio.sleep(15)
+	while not await router.router_reachable():
+		print("waiting for router to wake")
+		await asyncio.sleep(1)
+	with pytest.raises(NonZeroResponse):
+		await router.router_info()
