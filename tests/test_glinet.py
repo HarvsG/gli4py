@@ -85,7 +85,7 @@ async def test_connected_clients() -> None:
 async def test_wifi_ifaces_get() -> None:
 	wifi_ifaces = await router.wifi_ifaces_get()
 	print(wifi_ifaces)
-	for iface in wifi_ifaces:
+	for iface in wifi_ifaces.values():
 		assert('enabled' in iface)
 		assert('ssid' in iface)
 		assert('name' in iface)
