@@ -61,7 +61,6 @@ async def test_login() -> None:
 	assert(router.logged_in)
 	print(router.sid)
 
-
 @pytest.mark.asyncio
 async def test_router_info() -> None:
 	response = await router.router_info()
@@ -95,16 +94,6 @@ async def test_router_mac() -> None:
 	response = await router.router_mac()
 	assert('factory_mac' in response)
 	print(response)
-
-@pytest.mark.asyncio
-async def test_router_reboot() -> None:
-	response = await router.router_reboot()
-	print(response)
-	await asyncio.sleep(5)
-	while not await router.router_reachable():
-		await asyncio.sleep(1)
-	with pytest.raises(NonZeroResponse):
-		await router.router_info()
 
 @pytest.mark.asyncio
 async def test_connected_clients() -> None:
@@ -175,3 +164,15 @@ async def test_ping() -> None:
 	assert(response)
 	response = await router.ping("0.0.0.1")
 	assert(not response)
+
+@pytest.mark.asyncio
+async def test_router_reboot() -> None:
+	response = await router.router_reboot()
+	print(response)
+	print("waiting `15s` for router to shutdown")
+	await asyncio.sleep(15)
+	while not await router.router_reachable():
+		print("waiting for router to wake")
+		await asyncio.sleep(1)
+	with pytest.raises(NonZeroResponse):
+		await router.router_info()
