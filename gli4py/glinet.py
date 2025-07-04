@@ -278,7 +278,7 @@ class GLinet(Consumer):
     async def wireguard_client_stop(self) -> dict:
         return await self._request(self.gen_sid_payload('call', ['wg-client', 'stop'], self.sid))
 
-    async def _tailscale_get_config(self) -> dict | bool:
+    async def _tailscale_get_config(self) -> dict | False:
         """
         {'wan_enabled': False, 'lan_ip': '192.168.0.0/24', 'enabled': False, 'lan_enabled': True}
         {'detected': 2, 'dns': ['88.88.88.88'], 'gateway': '88.88.88.88', 'valid': False, 'netmask': '255.255.254.0', 'ip': '88.88.88.88'}
@@ -361,7 +361,7 @@ class GLinet(Consumer):
             return await self.tailscale_stop(depth)
         if status in [1,2]:
             raise ConnectionAbortedError("Disconnection not attempted as tailscale authorisation is not complete, due to '%s'. Therefore tailscale was already not connected", TailscaleConnection[status].name)
-
+    
     @property
     def logged_in(self) -> bool:
         return self._logged_in
