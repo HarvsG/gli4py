@@ -1,4 +1,3 @@
-import unittest
 import asyncio
 import pytest
 from gli4py.enums import TailscaleConnection
@@ -212,6 +211,7 @@ async def test_ping() -> None:
 
 @pytest.mark.asyncio
 async def test_router_reboot() -> None:
+	"""Test rebooting the router."""
 	response = await router.router_reboot()
 	print(response)
 	print("waiting `15s` for router to shutdown")
