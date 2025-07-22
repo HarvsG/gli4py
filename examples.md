@@ -1,4 +1,4 @@
-
+This file is used to document the various API calls and typical responses
 `my_router.connected_clients()` or `asyncio.run(my_router.async_connected_clients())`
 ```json
 {
@@ -42,4 +42,270 @@
       "vendor":"Google, Inc.",
       "node":"0"
    }
+}
+```
+
+tests/test_glinet.py::test_router_info 
+```json
+{
+   "mac":"94:83:C4:00:00:00",
+   "disable_guest_during_scan_wifi":false,
+   "hardware_version":"",
+   "country_code":"",
+   "sn_bak":"d8c8321000000",
+   "software_feature":{
+      "ipv6":true,
+      "adguard":false,
+      "passthrough":false,
+      "repeater_eap":true,
+      "vpn":true,
+      "ids_ips":false,
+      "bark":false,
+      "tor":false,
+      "secondwan":false,
+      "sms_forward":false,
+      "nas":false
+   },
+   "vendor":"GL.iNet",
+   "hardware_feature":{
+      "reset_button":"gpio-63",
+      "nand":false,
+      "bluetooth":false,
+      "wan":"eth1",
+      "usb_reset":"",
+      "switch_button":"",
+      "radio":"radio0 radio1",
+      "lan":"eth0",
+      "usb":"1-1,2-1",
+      "build_in_modem":"",
+      "noled":false,
+      "hwnat":false,
+      "microsd":"",
+      "modem_reset":2,
+      "fan":false,
+      "mcu":false,
+      "nowds":false
+   },
+   "cpu_num":4,
+   "board_info":{
+      "architecture":"ARMv7 Processor rev 5 (v7l)",
+      "hostname":"GL-B1300",
+      "kernel_version":"5.4.179",
+      "openwrt_version":"OpenWrt 21.02.2 r16495-bf0c965af0",
+      "model":"GL.iNet GL-B1300"
+   },
+   "firmware_date":"2025-03-31 20:12:50",
+   "model":"b1300",
+   "ddns":"eg0fd66",
+   "sn":"36aea4a340000000",
+   "firmware_type":"release1",
+   "firmware_version":"4.3.25"
+}
+```
+tests/test_glinet.py::test_router_get_status 
+```json
+{
+   "network":[
+      {
+         "online":true,
+         "up":true,
+         "interface":"wan"
+      },
+      {
+         "online":false,
+         "up":false,
+         "interface":"wwan"
+      },
+      {
+         "online":false,
+         "up":false,
+         "interface":"tethering"
+      },
+      {
+         "online":false,
+         "up":false,
+         "interface":"wan6"
+      },
+      {
+         "online":false,
+         "up":false,
+         "interface":"wwan6"
+      },
+      {
+         "online":false,
+         "up":false,
+         "interface":"tethering6"
+      }
+   ],
+   "wifi":[
+      {
+         "guest":false,
+         "ssid":"MYSSID-2.4G",
+         "up":true,
+         "channel":1,
+         "band":"2G",
+         "name":"default_radio0",
+         "passwd":"None"
+      },
+      {
+         "guest":false,
+         "ssid":"MYSSID-5G",
+         "up":true,
+         "channel":48,
+         "band":"5G",
+         "name":"default_radio1",
+         "passwd":"None"
+      },
+      {
+         "guest":true,
+         "ssid":"GL-B1300-000-Guest",
+         "up":false,
+         "channel":1,
+         "band":"2G",
+         "name":"guest2g",
+         "passwd":"None"
+      },
+      {
+         "guest":true,
+         "ssid":"GL-B1300-000-5G-Guest",
+         "up":false,
+         "channel":48,
+         "band":"5G",
+         "name":"guest5g",
+         "passwd":"None"
+      }
+   ],
+   "service":[
+      {
+         "name":"wgclient",
+         "status":0
+      },
+      {
+         "name":"wgserver",
+         "status":0
+      },
+      {
+         "name":"ovpnclient",
+         "status":0
+      },
+      {
+         "name":"ovpnserver",
+         "status":0
+      }
+   ],
+   "client":[
+      {
+         "cable_total":12,
+         "wireless_total":5
+      }
+   ],
+   "system":{
+      "netnat_enabled":false,
+      "ddns_enabled":false,
+      "tzoffset":"+0100",
+      "guest_ip":"192.168.9.1",
+      "flash_app":610304,
+      "flash_total":33554432,
+      "memory_total":254586880,
+      "memory_free":137543680,
+      "ipv6_enabled":false,
+      "memory_buff_cache":33550336,
+      "uptime":31287.02,
+      "load_average":[
+         0.2,
+         0.2,
+         0.18
+      ],
+      "guest_netmask":"255.255.255.0",
+      "mode":4,
+      "flash_free":14135296,
+      "timestamp":1753189931
+   }
+}
+```
+
+tests/test_glinet.py::test_router_get_load 
+```json
+{
+   "memory_free":137641984,
+   "memory_buff_cache":33554432,
+   "memory_total":254586880,
+   "load_average":[
+      0.2,
+      0.2,
+      0.18
+   ]
+}
+```
+
+tests/test_glinet.py::test_router_mac 
+```json
+{
+   "mac":"94:83:C4:00:00:00",
+   "secondwan_mac":"",
+   "repeater_mac":"",
+   "mode":0,
+   "remote_mac":"A8:A1:59:00:00:00",
+   "factory_mac":"94:83:C4:00:00:00"
+}
+```
+
+tests/test_glinet.py::test_wifi_ifaces_get 
+```json
+{
+   "default_radio0":{
+      "enabled":true,
+      "ssid":"MYSSID-2.4G",
+      "encryption":"psk2",
+      "name":"default_radio0",
+      "guest":false,
+      "hidden":false,
+      "key":"None"
+   },
+   "guest2g":{
+      "enabled":false,
+      "ssid":"GL-B1300-000-Guest",
+      "encryption":"psk2",
+      "name":"guest2g",
+      "guest":true,
+      "hidden":false,
+      "key":"None"
+   },
+   "default_radio1":{
+      "enabled":true,
+      "ssid":"MYSSID-5G",
+      "encryption":"sae-mixed",
+      "name":"default_radio1",
+      "guest":false,
+      "hidden":false,
+      "key":"None"
+   },
+   "guest5g":{
+      "enabled":false,
+      "ssid":"GL-B1300-000-5G-Guest",
+      "encryption":"psk2",
+      "name":"guest5g",
+      "guest":true,
+      "hidden":false,
+      "key":"None"
+   }
+}
+```
+
+tests/test_glinet.py::test_wireguard_client_state
+```json
+{
+   "rx_bytes":0,
+   "ipv6":"",
+   "tx_bytes":0,
+   "domain":"",
+   "group_id":0,
+   "port":0,
+   "name":"",
+   "peer_id":0,
+   "status":0,
+   "proxy":true,
+   "log":"",
+   "ipv4":""
+}
 ```
