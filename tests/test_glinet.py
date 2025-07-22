@@ -200,7 +200,7 @@ async def test_tailscale_connection() -> None:
     """Test retrieving the Tailscale connection state."""
     response = await router.tailscale_connection_state()
     print(response)
-    assert response in [TailscaleConnection.Disconnected, TailscaleConnection.Connected]
+    assert response in [TailscaleConnection.DISCONNECTED, TailscaleConnection.CONNECTED]
 
 
 @pytest.mark.asyncio

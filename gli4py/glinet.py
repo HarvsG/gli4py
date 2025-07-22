@@ -25,7 +25,7 @@ class GLinet(Consumer):
         self._logged_in = self.sid is not None
 
         # initialise the super class
-        super(GLinet, self).__init__(client=AiohttpClient(), **kwargs)
+        super().__init__(client=AiohttpClient(), **kwargs)
 
     @staticmethod
     def gen_sid_payload(method: str, params: list, sid: str = None) -> dict:
@@ -277,8 +277,7 @@ class GLinet(Consumer):
             return await self._wifi_config_set(
                 {"enabled": enabled, "iface_name": iface_name}
             )
-        else:
-            raise ValueError("iface_name does not exist")
+        raise ValueError("iface_name does not exist")
 
     # VPN information
 
@@ -393,8 +392,7 @@ class GLinet(Consumer):
                 await asyncio.sleep(0.3)
             depth += 1
             return await self.tailscale_start(depth)
-        else:
-            status: int = response.get("status", 0)
+        status: int = response.get("status", 0)
         if status == 3:
             return True
         if status == 4:
@@ -419,8 +417,7 @@ class GLinet(Consumer):
         response: dict | list = await self._tailscale_status()
         if isinstance(response, list) and response == []:
             return True
-        else:
-            status: int = response.get("status", 0)
+        status: int = response.get("status", 0)
         if status in [3, 4]:
             await self._tailscale_set_config({"enabled": False})
             if depth > 0:
