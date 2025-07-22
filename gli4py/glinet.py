@@ -1,3 +1,4 @@
+"""This module provides an asynchronous client for the GL-inet router API using uplink."""
 import asyncio
 from typing import Any, Optional
 from requests import Response, exceptions

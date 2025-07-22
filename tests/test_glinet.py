@@ -1,3 +1,4 @@
+"""Tests for the GLinet router API using gli4py, must be run against a GLinet router."""
 import asyncio
 import pytest
 from gli4py.enums import TailscaleConnection
