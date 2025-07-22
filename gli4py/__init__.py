@@ -1,4 +1,4 @@
-#from gli4py.glinet import GLinet
+"""gli4py - A Python library for GL.iNet routers"""
 from .glinet import GLinet
 
 if __name__ == "__main__":
