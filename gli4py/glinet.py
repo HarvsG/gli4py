@@ -9,7 +9,7 @@ from passlib.hash import md5_crypt, sha256_crypt, sha512_crypt
 
 from gli4py.enums import TailscaleConnection
 
-from .error_handling import APIClientError, raise_for_status  # , timeout_error
+from .error_handling import APIClientError, AuthenticationError, raise_for_status  # , timeout_error
 
 
 # typical base url http://192.168.8.1/rpc
@@ -122,8 +122,10 @@ class GLinet(Consumer):
             raise exceptions.RequestException(e)
         except (KeyError, ValueError) as e:
             raise KeyError("Parameter Exception:") from e
+        except AuthenticationError as e:
+            raise AuthenticationError("Authentication failed during login") from e
         except APIClientError as e:
-            raise APIClientError("An unexpected error has occurred:") from e
+            raise APIClientError(f"An unexpected error of type {type(e).__name__} has occurred during login") from e
 
     async def router_info(self) -> dict:
         """Retrieves information about the router, requires authentication."""
