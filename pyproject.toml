@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "gli4py"
-version = "0.0.12"
+version = "0.0.13"
 description = "A python 3 API wrapper for GL-inet routers for consumption by Home Assistant"
 authors = ["HarvsG <doctor@codingdoctor.co.uk>"]
 license = "GNU GENERAL PUBLIC LICENSE"
@@ -24,3 +24,4 @@ pytest-asyncio = "^0.21.0"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
