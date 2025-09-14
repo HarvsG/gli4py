@@ -119,7 +119,7 @@ class GLinet(Consumer):
                 hsh = hashlib.sha512(data.encode()).hexdigest()
             else:
                 raise ValueError("Router requested unsupported hashing algorithm for cipher password")
-                
+
             # Step4: Get sid by login
             res = await self._get_sid(username, hsh)
             if "sid" in res:
@@ -443,5 +443,3 @@ class GLinet(Consumer):
     def logged_in(self) -> bool:
         """Returns whether the client is logged in."""
         return self._logged_in
-
-
