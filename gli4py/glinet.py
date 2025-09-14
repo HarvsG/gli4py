@@ -93,6 +93,7 @@ class GLinet(Consumer):
             alg = res["alg"]
             salt = res["salt"]
             nonce = res["nonce"]
+            hash_method = res.get("hash-method", "md5")
 
             # Step2: Generate cipher text using openssl algorithm
             if alg == 1:  # MD5
@@ -106,9 +107,17 @@ class GLinet(Consumer):
                     password
                 )
             else:
-                raise ValueError("Router requested unsupported hashing algorithm")
+                raise ValueError("Router requested unsupported hashing algorithm for cipher password")
 
             # Step3: Generate hash values for login
+            if hash_method == "md5":  # MD5
+                hsh = hashlib.md5(data.encode()).hexdigest()
+            elif hash_method == "sha256":  # SHA-256
+                hash = hashlib.sha256(data.encode()).hexdigest()
+            elif hash_method == "sha256":  # SHA-512
+                hash = hashlib.sha512(data.encode()).hexdigest()
+            else:
+                raise ValueError("Router requested unsupported hashing algorithm for cipher password")
             data = f"{username}:{cipher_password}:{nonce}"
             hsh = hashlib.md5(data.encode()).hexdigest()
 
@@ -435,3 +444,4 @@ class GLinet(Consumer):
     def logged_in(self) -> bool:
         """Returns whether the client is logged in."""
         return self._logged_in
+
