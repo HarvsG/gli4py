@@ -320,11 +320,11 @@ class GLinet(Consumer):
         return response.get("status_list", [])
 
     async def wireguard_client_start(self, tunnel_id: int) -> dict:
-        """Starts a WireGuard client with the specified group ID and peer ID."""
+        """Starts a WireGuard client with the specified tunnel ID."""
         return await self._wireguard_set_client_enabled(tunnel_id, True)
 
     async def wireguard_client_stop(self, tunnel_id: int) -> dict:
-        """Stops the WireGuard client."""
+        """Stops the WireGuard client with the specified tunnel ID."""
         return await self._wireguard_set_client_enabled(tunnel_id, False)
 
     async def _wireguard_set_client_enabled(
