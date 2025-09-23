@@ -310,21 +310,35 @@ class GLinet(Consumer):
                 )
         return configs
 
-    async def wireguard_client_state(self) -> dict:
+    async def wireguard_client_state(self) -> list:
         """
-        {"rx_bytes":0,"ipv6":"","tx_bytes":0,"domain":"vpn.example.com","group_id":7707,"port":51820,"name":"TheOracle","peer_id":1341,"status":0,"proxy":True,"log":"","ipv4":""}
-        status 0:not start 1:connected 2:connecting
+        {"status_list": [{"rx_bytes":0,"ipv6":"","tx_bytes":0,"domain":"vpn.example.com","group_id":7707,"port":51820,"name":"TheOracle","peer_id":1341,"enabled":true,"proxy":True,"log":"","ipv4":""}]}
         """
-        return await self._request(
-            self.gen_sid_payload("call", ["wg-client", "get_status"], self.sid)
+        response = await self._request(
+            self.gen_sid_payload("call", ["vpn-client", "get_status"], self.sid)
         )
+        return response.get("status_list", [])
 
-    async def wireguard_client_start(self, group_id: int, peer_id: int) -> dict:
+    async def wireguard_client_start(self, tunnel_id: int) -> dict:
         """Starts a WireGuard client with the specified group ID and peer ID."""
+        return await self._wireguard_set_client_enabled(tunnel_id, True)
+
+    async def wireguard_client_stop(self, tunnel_id: int) -> dict:
+        """Stops the WireGuard client."""
+        return await self._wireguard_set_client_enabled(tunnel_id, False)
+
+    async def _wireguard_set_client_enabled(
+        self, tunnel_id: int, enabled: bool
+    ) -> dict:
+        """Sets the WireGuard client enabled state."""
         return await self._request(
             self.gen_sid_payload(
                 "call",
-                ["wg-client", "start", {"group_id": group_id, "peer_id": peer_id}],
+                [
+                    "vpn-client",
+                    "set_tunnel",
+                    {"enabled": enabled, "tunnel_id": tunnel_id},
+                ],
                 self.sid,
             )
         )
