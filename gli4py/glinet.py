@@ -9,7 +9,8 @@ from passlib.hash import md5_crypt, sha256_crypt, sha512_crypt
 
 from gli4py.enums import TailscaleConnection
 
-from .error_handling import APIClientError, AuthenticationError, raise_for_status  # , timeout_error
+# , timeout_error
+from .error_handling import APIClientError, AuthenticationError, raise_for_status
 
 
 # typical base url http://192.168.8.1/rpc
@@ -107,7 +108,9 @@ class GLinet(Consumer):
                     password
                 )
             else:
-                raise ValueError("Router requested unsupported hashing algorithm for cipher password")
+                raise ValueError(
+                    "Router requested unsupported hashing algorithm for cipher password"
+                )
 
             # Step3: Generate hash values for login
             data = f"{username}:{cipher_password}:{nonce}"
@@ -118,7 +121,9 @@ class GLinet(Consumer):
             elif hash_method == "sha256":  # SHA-512
                 hsh = hashlib.sha512(data.encode()).hexdigest()
             else:
-                raise ValueError("Router requested unsupported hashing algorithm for hash")
+                raise ValueError(
+                    "Router requested unsupported hashing algorithm for hash"
+                )
 
             # Step4: Get sid by login
             res = await self._get_sid(username, hsh)
@@ -133,7 +138,9 @@ class GLinet(Consumer):
         except AuthenticationError as e:
             raise AuthenticationError("Authentication failed during login") from e
         except APIClientError as e:
-            raise APIClientError(f"An unexpected error of type {type(e).__name__} has occurred during login") from e
+            raise APIClientError(
+                f"An unexpected error of type {type(e).__name__} has occurred during login"
+            ) from e
 
     async def router_info(self) -> dict:
         """Retrieves information about the router, requires authentication."""
@@ -303,7 +310,7 @@ class GLinet(Consumer):
             for peer in item["peers"]:
                 configs.append(
                     {
-                        "name": f'{item["group_name"]}/{peer["name"]}',
+                        "name": f"{item['group_name']}/{peer['name']}",
                         "group_id": item["group_id"],
                         "peer_id": peer["peer_id"],
                     }
@@ -320,11 +327,11 @@ class GLinet(Consumer):
         return response.get("status_list", [])
 
     async def wireguard_client_start(self, tunnel_id: int) -> dict:
-        """Starts a WireGuard client with the specified group ID and peer ID."""
+        """Starts a WireGuard client with the specified tunnel ID."""
         return await self._wireguard_set_client_enabled(tunnel_id, True)
 
     async def wireguard_client_stop(self, tunnel_id: int) -> dict:
-        """Stops the WireGuard client."""
+        """Stops the WireGuard client with the specified tunnel ID."""
         return await self._wireguard_set_client_enabled(tunnel_id, False)
 
     async def _wireguard_set_client_enabled(
@@ -341,12 +348,6 @@ class GLinet(Consumer):
                 ],
                 self.sid,
             )
-        )
-
-    async def wireguard_client_stop(self) -> dict:
-        """Stops the WireGuard client."""
-        return await self._request(
-            self.gen_sid_payload("call", ["wg-client", "stop"], self.sid)
         )
 
     async def _tailscale_get_config(self) -> dict | bool:
@@ -424,11 +425,13 @@ class GLinet(Consumer):
             status = (await self._tailscale_status())["status"]
             if status != 3:
                 raise ConnectionError(
-                    f"Did not try to start tailscale as device reported 'Connecting' and then 3 seconds later {TailscaleConnection[status].name}")
+                    f"Did not try to start tailscale as device reported 'Connecting' and then 3 seconds later {TailscaleConnection[status].name}"
+                )
             return True
         if status in [1, 2]:
             raise ConnectionAbortedError(
-                f"Connection not attempted as authorisation is not complete, due to {TailscaleConnection[status].name}")
+                f"Connection not attempted as authorisation is not complete, due to {TailscaleConnection[status].name}"
+            )
 
         raise ConnectionError(f"Unknown connection status: {status}")
 
