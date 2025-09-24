@@ -22,6 +22,8 @@ NEW_VPN_CLIENT_VERSION = Version(4, 8, 0, 0)
 class GLinet(Consumer):
     """A Python Client for the GL-inet API."""
 
+    _firmware_version: Optional[Version] = None
+
     def __init__(self, sid: Optional[str] = None, **kwargs):
         self.sid: str = sid
         self._logged_in = self.sid is not None
@@ -139,9 +141,18 @@ class GLinet(Consumer):
 
     async def router_info(self) -> dict:
         """Retrieves information about the router, requires authentication."""
-        return await self._request(
+        response = await self._request(
             self.gen_sid_payload("call", ["system", "get_info"], self.sid)
         )
+
+        # Sanity check for firmware version
+        if "firmware_version" in response:
+            self._firmware_version = Version.parse(response["firmware_version"])
+        else:
+            # No firmware version found, error
+            raise ValueError("No firmware version found in router info")
+
+        return response
 
     async def router_get_status(self) -> dict[str, list[dict[str, Any]]]:
         """Retrieves the status of the router, requires authentication."""
@@ -312,19 +323,21 @@ class GLinet(Consumer):
                 )
         return configs
 
-    async def wireguard_client_state(self, version_string: str) -> list:
+    async def wireguard_client_state(self) -> list:
         """
         {"status_list": [{"rx_bytes":0,"ipv6":"","tx_bytes":0,"domain":"vpn.example.com","group_id":7707,"port":51820,"name":"TheOracle","peer_id":1341,"enabled":true,"proxy":True,"log":"","ipv4":""}]}
         """
-        parsed_version = Version.parse(version_string)
+        if self._firmware_version is None:
+            await self.router_info()
+        
         # If version is 4.8 or greater use vpn-client otherwise use wg-client
-        target_call = "vpn-client" if parsed_version >= NEW_VPN_CLIENT_VERSION else "wg-client"
+        target_call = "vpn-client" if self._firmware_version >= NEW_VPN_CLIENT_VERSION else "wg-client"
 
         response = await self._request(
             self.gen_sid_payload("call", [target_call, "get_status"], self.sid)
         )
 
-        if parsed_version < NEW_VPN_CLIENT_VERSION:
+        if self._firmware_version < NEW_VPN_CLIENT_VERSION:
             # If the version is less than 4.8 we need to adjust the response to match the new format
             # The old format does not return an array, but just a single object.
             # We will wrap it in an array to match the new format.
@@ -332,22 +345,22 @@ class GLinet(Consumer):
 
         return response.get("status_list", [])
 
-    async def wireguard_client_start(self, group_id: int, peer_id: int, tunnel_id: int, version_string: str) -> dict:
+    async def wireguard_client_start(self, group_id: int, peer_id: int, tunnel_id: int) -> dict:
         """Starts a WireGuard client with the specified tunnel ID."""        
-        return await self._wireguard_set_client_enabled(group_id, peer_id, tunnel_id, True, version_string)
+        return await self._wireguard_set_client_enabled(group_id, peer_id, tunnel_id, True)
 
-    async def wireguard_client_stop(self, tunnel_id: int, version_string: str) -> dict:
+    async def wireguard_client_stop(self, tunnel_id: int) -> dict:
         """Stops the WireGuard client with the specified tunnel ID."""
         # Pass -1 for group_id and peer_id as they are not needed to stop the client
-        return await self._wireguard_set_client_enabled(-1, -1, tunnel_id, False, version_string)
+        return await self._wireguard_set_client_enabled(-1, -1, tunnel_id, False)
 
-    async def _wireguard_set_client_enabled(
-        self, group_id: int, peer_id: int, tunnel_id: int, enabled: bool, version_string: str
-    ) -> dict:
+    async def _wireguard_set_client_enabled(self, group_id: int, peer_id: int, tunnel_id: int, enabled: bool) -> dict:
         """Sets the WireGuard client enabled state."""
-        parsed_version = Version.parse(version_string)
+        if self._firmware_version is None:
+            await self.router_info()
+        
         # If version is 4.8 or greater use vpn-client otherwise use wg-client
-        if parsed_version >= NEW_VPN_CLIENT_VERSION:
+        if self._firmware_version >= NEW_VPN_CLIENT_VERSION:
             return await self._request(
             self.gen_sid_payload(
                     "call",

@@ -2,7 +2,6 @@
 
 import asyncio
 import pytest
-import semver
 from semver import Version
 from gli4py.enums import TailscaleConnection
 from gli4py.error_handling import NonZeroResponse
@@ -188,7 +187,7 @@ async def test_wireguard_client_state() -> None:
     info_response = await router.router_info()
     firmware_version = info_response["firmware_version"]
     parsed_version = Version.parse(firmware_version)
-    response = await router.wireguard_client_state(firmware_version)
+    response = await router.wireguard_client_state()
     print(response)
     first_status = response[0]
     # In newer version, status only exists when enabled is True
@@ -205,9 +204,7 @@ async def test_wireguard_start() -> None:
         PERFORM_DISTRUPTIVE_TESTS
     ), "Disruptive tests are disabled, set PERFORM_DISTRUPTIVE_TESTS to True to run this test."
 
-    info_response = await router.router_info()
-    firmware_version = info_response["firmware_version"]
-    status_list = await router.wireguard_client_state(firmware_version)
+    status_list = await router.wireguard_client_state()
     if status_list is None or len(status_list) == 0:
         pytest.skip("No WireGuard client configured, skipping test.")
         return
@@ -217,13 +214,13 @@ async def test_wireguard_start() -> None:
     peer_id = first_status["peer_id"]
     tunnel_id = first_status["tunnel_id"]
 
-    result = await router.wireguard_client_start(group_id, peer_id, tunnel_id, firmware_version)
+    result = await router.wireguard_client_start(group_id, peer_id, tunnel_id)
     print("RESULT: ", result)
     assert result["tunnel_id"] == tunnel_id
 
     # Wait for the client to connect or timeout with 10 seconds
     for i in range(10):
-        status_list = await router.wireguard_client_state(firmware_version)
+        status_list = await router.wireguard_client_state()
         first_status = status_list[0]
         if "status" in first_status and first_status["status"] == 1 and "enabled" in first_status and first_status["enabled"]:
             break
@@ -241,7 +238,7 @@ async def test_wireguard_stop() -> None:
 
     info_response = await router.router_info()
     firmware_version = info_response["firmware_version"]
-    status_list = await router.wireguard_client_state(firmware_version)
+    status_list = await router.wireguard_client_state()
     if status_list is None or len(status_list) == 0:
         pytest.skip("No WireGuard client configured, skipping test.")
         return
@@ -249,7 +246,7 @@ async def test_wireguard_stop() -> None:
     first_status = status_list[0]    
     tunnel_id = first_status["tunnel_id"]
 
-    result = await router.wireguard_client_stop(tunnel_id, firmware_version)
+    result = await router.wireguard_client_stop(tunnel_id)
     print("RESULT: ", result)
     assert result["tunnel_id"] == tunnel_id
 
@@ -257,7 +254,7 @@ async def test_wireguard_stop() -> None:
 
     # Wait for the client to disconnect or timeout with 10 seconds
     for i in range(10):
-        status_list = await router.wireguard_client_state(firmware_version)
+        status_list = await router.wireguard_client_state()
         first_status = status_list[0]
         # In newer version, status only exists when enabled is True
         # In older versions, status is always present
