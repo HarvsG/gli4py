@@ -2,6 +2,8 @@
 
 import asyncio
 import pytest
+import semver
+from semver import Version
 from gli4py.enums import TailscaleConnection
 from gli4py.error_handling import NonZeroResponse
 from gli4py.glinet import GLinet, NEW_VPN_CLIENT_VERSION
