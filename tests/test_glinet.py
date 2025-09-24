@@ -4,7 +4,8 @@ import asyncio
 import pytest
 from gli4py.enums import TailscaleConnection
 from gli4py.error_handling import NonZeroResponse
-from gli4py.glinet import GLinet
+from gli4py.glinet import GLinet, NEW_VPN_CLIENT_VERSION
+from gli4py.version import Version
 
 router = GLinet(base_url="http://192.168.0.1/rpc")
 PERFORM_DISTRUPTIVE_TESTS = False
@@ -182,9 +183,94 @@ async def test_wireguard_client_list() -> None:
 @pytest.mark.asyncio
 async def test_wireguard_client_state() -> None:
     """Test retrieving the state of the WireGuard client."""
-    response = await router.wireguard_client_state()
+    # We need to get the proper firmware version for this
+    info_response = await router.router_info()
+    firmware_version = info_response["firmware_version"]
+    parsed_version = Version.parse(firmware_version)
+    response = await router.wireguard_client_state(firmware_version)
     print(response)
-    assert response["status"] in [0, 1, 2]
+    first_status = response[0]
+    # In newer version, status only exists when enabled is True
+    # In older versions, status is always present
+    if parsed_version >= NEW_VPN_CLIENT_VERSION:
+        assert first_status["enabled"] in [True, False]
+    else:
+        assert first_status["status"] in [0, 1, 2]
+
+@pytest.mark.asyncio
+async def test_wireguard_start() -> None:
+    """Test starting the WireGuard client."""
+    assert (
+        PERFORM_DISTRUPTIVE_TESTS
+    ), "Disruptive tests are disabled, set PERFORM_DISTRUPTIVE_TESTS to True to run this test."
+
+    info_response = await router.router_info()
+    firmware_version = info_response["firmware_version"]
+    status_list = await router.wireguard_client_state(firmware_version)
+    if status_list is None or len(status_list) == 0:
+        pytest.skip("No WireGuard client configured, skipping test.")
+        return
+    
+    first_status = status_list[0]    
+    group_id = first_status["group_id"]
+    peer_id = first_status["peer_id"]
+    tunnel_id = first_status["tunnel_id"]
+
+    result = await router.wireguard_client_start(group_id, peer_id, tunnel_id, firmware_version)
+    print("RESULT: ", result)
+    assert result["tunnel_id"] == tunnel_id
+
+    # Wait for the client to connect or timeout with 10 seconds
+    for i in range(10):
+        status_list = await router.wireguard_client_state(firmware_version)
+        first_status = status_list[0]
+        if "status" in first_status and first_status["status"] == 1 and "enabled" in first_status and first_status["enabled"]:
+            break
+        await asyncio.sleep(1)
+
+        if i == 9:
+            pytest.fail("WireGuard client took too long to connect.")
+
+@pytest.mark.asyncio
+async def test_wireguard_stop() -> None:
+    """Test stopping the WireGuard client."""
+    assert (
+        PERFORM_DISTRUPTIVE_TESTS
+    ), "Disruptive tests are disabled, set PERFORM_DISTRUPTIVE_TESTS to True to run this test."
+
+    info_response = await router.router_info()
+    firmware_version = info_response["firmware_version"]
+    status_list = await router.wireguard_client_state(firmware_version)
+    if status_list is None or len(status_list) == 0:
+        pytest.skip("No WireGuard client configured, skipping test.")
+        return
+    
+    first_status = status_list[0]    
+    tunnel_id = first_status["tunnel_id"]
+
+    result = await router.wireguard_client_stop(tunnel_id, firmware_version)
+    print("RESULT: ", result)
+    assert result["tunnel_id"] == tunnel_id
+
+    parsed_version = Version.parse(firmware_version)
+
+    # Wait for the client to disconnect or timeout with 10 seconds
+    for i in range(10):
+        status_list = await router.wireguard_client_state(firmware_version)
+        first_status = status_list[0]
+        # In newer version, status only exists when enabled is True
+        # In older versions, status is always present
+        if parsed_version >= NEW_VPN_CLIENT_VERSION:
+            if "enabled" in first_status and not first_status["enabled"]:
+                break
+        else:
+            if "status" in first_status and first_status["status"] == 0:
+                break
+
+        await asyncio.sleep(1)
+
+        if i == 9:
+            pytest.fail("WireGuard client took too long to disconnect.")
 
 
 @pytest.mark.asyncio
