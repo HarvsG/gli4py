@@ -328,7 +328,7 @@ class GLinet(Consumer):
             # If the version is less than 4.8 we need to adjust the response to match the new format
             # The old format does not return an array, but just a single object.
             # We will wrap it in an array to match the new format.
-            response = {"status_list": [response]}
+            return [response]
 
         return response.get("status_list", [])
 
