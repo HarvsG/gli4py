@@ -8,11 +8,13 @@ from uplink import Consumer, json, post, response_handler, AiohttpClient, timeou
 from passlib.hash import md5_crypt, sha256_crypt, sha512_crypt
 
 from gli4py.enums import TailscaleConnection
+from gli4py.version import Version
 
 from .error_handling import APIClientError, AuthenticationError, raise_for_status  # , timeout_error
 
 
 # typical base url http://192.168.8.1/rpc
+NEW_VPN_CLIENT_VERSION = Version(4, 8, 0, 0)
 
 
 @response_handler(raise_for_status)
@@ -310,38 +312,68 @@ class GLinet(Consumer):
                 )
         return configs
 
-    async def wireguard_client_state(self) -> list:
+    async def wireguard_client_state(self, version_string: str) -> list:
         """
         {"status_list": [{"rx_bytes":0,"ipv6":"","tx_bytes":0,"domain":"vpn.example.com","group_id":7707,"port":51820,"name":"TheOracle","peer_id":1341,"enabled":true,"proxy":True,"log":"","ipv4":""}]}
         """
+        parsed_version = Version.parse(version_string)
+        # If version is 4.8 or greater use vpn-client otherwise use wg-client
+        target_call = "vpn-client" if parsed_version >= NEW_VPN_CLIENT_VERSION else "wg-client"
+
         response = await self._request(
-            self.gen_sid_payload("call", ["vpn-client", "get_status"], self.sid)
+            self.gen_sid_payload("call", [target_call, "get_status"], self.sid)
         )
+
+        if parsed_version < NEW_VPN_CLIENT_VERSION:
+            # If the version is less than 4.8 we need to adjust the response to match the new format
+            # The old format does not return an array, but just a single object.
+            # We will wrap it in an array to match the new format.
+            response = {"status_list": [response]}
+
         return response.get("status_list", [])
 
-    async def wireguard_client_start(self, tunnel_id: int) -> dict:
-        """Starts a WireGuard client with the specified tunnel ID."""
-        return await self._wireguard_set_client_enabled(tunnel_id, True)
+    async def wireguard_client_start(self, group_id: int, peer_id: int, tunnel_id: int, version_string: str) -> dict:
+        """Starts a WireGuard client with the specified tunnel ID."""        
+        return await self._wireguard_set_client_enabled(group_id, peer_id, tunnel_id, True, version_string)
 
-    async def wireguard_client_stop(self, tunnel_id: int) -> dict:
+    async def wireguard_client_stop(self, tunnel_id: int, version_string: str) -> dict:
         """Stops the WireGuard client with the specified tunnel ID."""
-        return await self._wireguard_set_client_enabled(tunnel_id, False)
+        # Pass -1 for group_id and peer_id as they are not needed to stop the client
+        return await self._wireguard_set_client_enabled(-1, -1, tunnel_id, False, version_string)
 
     async def _wireguard_set_client_enabled(
-        self, tunnel_id: int, enabled: bool
+        self, group_id: int, peer_id: int, tunnel_id: int, enabled: bool, version_string: str
     ) -> dict:
         """Sets the WireGuard client enabled state."""
-        return await self._request(
+        parsed_version = Version.parse(version_string)
+        # If version is 4.8 or greater use vpn-client otherwise use wg-client
+        if parsed_version >= NEW_VPN_CLIENT_VERSION:
+            return await self._request(
             self.gen_sid_payload(
-                "call",
-                [
-                    "vpn-client",
-                    "set_tunnel",
-                    {"enabled": enabled, "tunnel_id": tunnel_id},
-                ],
-                self.sid,
+                    "call",
+                    [
+                        "vpn-client",
+                        "set_tunnel",
+                        {"enabled": enabled, "tunnel_id": tunnel_id},
+                    ],
+                    self.sid,
+                )
             )
-        )
+        else:
+            if enabled:
+                return await self._request(
+                        self.gen_sid_payload(
+                            "call",
+                            ["wg-client", "start", {"group_id": group_id, "peer_id": peer_id}],
+                            self.sid,
+                        )
+                    )
+            else:
+                return await self._request(
+                        self.gen_sid_payload("call", ["wg-client", "stop"], self.sid)
+                    )
+
+        
 
     async def _tailscale_get_config(self) -> dict | bool:
         """
