@@ -343,6 +343,12 @@ class GLinet(Consumer):
             )
         )
 
+    async def wireguard_client_stop(self) -> dict:
+        """Stops the WireGuard client."""
+        return await self._request(
+            self.gen_sid_payload("call", ["wg-client", "stop"], self.sid)
+        )
+
     async def _tailscale_get_config(self) -> dict | bool:
         """
         {'wan_enabled': False, 'lan_ip': '192.168.0.0/24', 'enabled': False, 'lan_enabled': True}
