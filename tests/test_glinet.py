@@ -213,9 +213,9 @@ async def test_wireguard_start() -> None:
     first_status = status_list[0]
     group_id = first_status["group_id"]
     peer_id = first_status["peer_id"]
-    tunnel_id = first_status["tunnel_id"]
+    tunnel_id = first_status.get("tunnel_id")
 
-    result = await router.wireguard_client_start(group_id, peer_id, tunnel_id)
+    result = await router.wireguard_client_start(group_id, tunnel_id or peer_id)
     print("RESULT: ", result)
     assert result["tunnel_id"] == tunnel_id
 
