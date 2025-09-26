@@ -22,6 +22,13 @@ I thought it would be handy to develop a python 3 wrapper for the API for easy i
 9. Set token with `poetry config pypi-token.pypi TOKEN`
 10. publish with `poetry publish --build`
 
+## Dev setup alongside HA & the Custom component
+1. Clone the repo into the vscode `/workspaces/` dir
+2. The inside the `ha-env` terminal run `(ha-venv) vscode ➜ /workspaces/core (branch-name) $ pip install -e /workspaces/gli4py `
+3. Ensure the custom component has `"python.analysis.extraPaths": ["/workspaces/gli4py/"]` in `.vscode/settings.json`
+4. deactivate the `ha-env` with `deactivate`
+5. Do steps 3 onwards above
+
 Todo list:
 - [ ] Decide on useful endpoints to expose - see https://github.com/HarvsG/ha-glinet-integration#todo
 - [ ] Expose said endpoints
