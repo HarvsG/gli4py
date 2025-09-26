@@ -16,8 +16,6 @@ from .error_handling import APIClientError, AuthenticationError, raise_for_statu
 NEW_VPN_CLIENT_VERSION = Version(4, 8, 0, 0)
 
 
-@response_handler(raise_for_status)
-@json
 class GLinet(Consumer):
     """A Python Client for the GL-inet API."""
 
@@ -55,11 +53,15 @@ class GLinet(Consumer):
         }
         return payload
 
+    @response_handler(raise_for_status)
+    @json
     @post("")
     @timeout(2)
     async def _request(self, data: Body) -> Response:
         """Base method to make a request to the GL-inet API."""
 
+    @response_handler(raise_for_status)
+    @json
     @post("")
     @timeout(5)
     async def _request_long_timeout(self, data: Body) -> Response:
@@ -303,7 +305,7 @@ class GLinet(Consumer):
 
     # VPN information
 
-    async def wireguard_client_list(self) -> dict:
+    async def wireguard_client_list(self) -> list[dict[str, any]]:
         """Gets the list of WireGuard clients."""
         response: dict = await self._request(
             self.gen_sid_payload("call", ["wg-client", "get_all_config_list"], self.sid)
@@ -322,9 +324,12 @@ class GLinet(Consumer):
                 )
         return configs
 
-    async def wireguard_client_state(self) -> list:
+    async def wireguard_client_state(self) -> list[dict[str, Any]]:
         """
+        Firmware 4.8 and greater returns a list of status objects
         {"status_list": [{"rx_bytes":0,"ipv6":"","tx_bytes":0,"domain":"vpn.example.com","group_id":7707,"port":51820,"name":"TheOracle","peer_id":1341,"enabled":true,"proxy":True,"log":"","ipv4":""}]}
+        Firmware less than 4.8 returns a single status object of the most recently started client
+        {"rx_bytes":0,"ipv6":"","tx_bytes":0,"domain":"vpn.example.com","group_id":7707,"port":51820,"name":"TheOracle","peer_id":1341,"enabled":true,"proxy":True,"log":"","ipv4":""}
         """
         if self._firmware_version is None:
             await self.router_info()
@@ -344,22 +349,29 @@ class GLinet(Consumer):
 
         return response.get("status_list", [])
 
-    async def wireguard_client_start(self, group_id: int, peer_id: int, tunnel_id: int) -> dict:
-        """Starts a WireGuard client with the specified tunnel ID."""        
-        return await self._wireguard_set_client_enabled(group_id, peer_id, tunnel_id, True)
+    async def wireguard_client_start(
+        self, group_id: int, peer_or_tunnel_id: int
+    ) -> dict:
+        """Starts a WireGuard client with the specified tunnel ID."""
+        return await self._wireguard_set_client_enabled(
+            group_id, peer_or_tunnel_id, True
+        )
 
-    async def wireguard_client_stop(self, tunnel_id: int) -> dict:
+    async def wireguard_client_stop(self, peer_or_tunnel_id: int) -> dict:
         """Stops the WireGuard client with the specified tunnel ID."""
         # Pass -1 for group_id and peer_id as they are not needed to stop the client
-        return await self._wireguard_set_client_enabled(-1, -1, tunnel_id, False)
+        return await self._wireguard_set_client_enabled(-1, peer_or_tunnel_id, False)
 
-    async def _wireguard_set_client_enabled(self, group_id: int, peer_id: int, tunnel_id: int, enabled: bool) -> dict:
+    async def _wireguard_set_client_enabled(
+        self, group_id: int, peer_or_tunnel_id: int, enabled: bool
+    ) -> dict:
         """Sets the WireGuard client enabled state."""
         if self._firmware_version is None:
             await self.router_info()
 
         # If version is 4.8 or greater use vpn-client otherwise use wg-client
         if self._firmware_version >= NEW_VPN_CLIENT_VERSION:
+            tunnel_id = peer_or_tunnel_id
             return await self._request(
             self.gen_sid_payload(
                     "call",
@@ -374,6 +386,7 @@ class GLinet(Consumer):
 
         # Not version 4.8 or greater so use wg-client
         # If enabled, call the start method with group_id and peer_id
+        peer_id = peer_or_tunnel_id
         if enabled:
             return await self._request(
                     self.gen_sid_payload(
