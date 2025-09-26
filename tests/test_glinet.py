@@ -208,8 +208,8 @@ async def test_wireguard_start() -> None:
     if status_list is None or len(status_list) == 0:
         pytest.skip("No WireGuard client configured, skipping test.")
         return
-    
-    first_status = status_list[0]    
+
+    first_status = status_list[0]
     group_id = first_status["group_id"]
     peer_id = first_status["peer_id"]
     tunnel_id = first_status["tunnel_id"]
@@ -242,8 +242,8 @@ async def test_wireguard_stop() -> None:
     if status_list is None or len(status_list) == 0:
         pytest.skip("No WireGuard client configured, skipping test.")
         return
-    
-    first_status = status_list[0]    
+
+    first_status = status_list[0]
     tunnel_id = first_status["tunnel_id"]
 
     result = await router.wireguard_client_stop(tunnel_id)
