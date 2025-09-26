@@ -2,7 +2,6 @@
 
 import asyncio
 import hashlib
-import semver
 from typing import Any, Optional
 from requests import Response, exceptions
 from uplink import Consumer, json, post, response_handler, AiohttpClient, timeout, Body
