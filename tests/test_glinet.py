@@ -135,9 +135,9 @@ async def test_wifi_ifaces_get() -> None:
 async def test_wifi_ifaces_set_enabled() -> None:
     """Test enabling/disabling a WiFi interface."""
 
-    assert (
-        PERFORM_DISTRUPTIVE_TESTS
-    ), "Disruptive tests are disabled, set PERFORM_DISTRUPTIVE_TESTS to True to run this test."
+    assert PERFORM_DISTRUPTIVE_TESTS, (
+        "Disruptive tests are disabled, set PERFORM_DISTRUPTIVE_TESTS to True to run this test."
+    )
     wifi_ifaces = await router.wifi_ifaces_get()
     iface = next(iter(wifi_ifaces.values()))
     iface_enabled = iface.get("enabled")
@@ -197,12 +197,13 @@ async def test_wireguard_client_state() -> None:
     else:
         assert first_status["status"] in [0, 1, 2]
 
+
 @pytest.mark.asyncio
 async def test_wireguard_start() -> None:
     """Test starting the WireGuard client."""
-    assert (
-        PERFORM_DISTRUPTIVE_TESTS
-    ), "Disruptive tests are disabled, set PERFORM_DISTRUPTIVE_TESTS to True to run this test."
+    assert PERFORM_DISTRUPTIVE_TESTS, (
+        "Disruptive tests are disabled, set PERFORM_DISTRUPTIVE_TESTS to True to run this test."
+    )
 
     status_list = await router.wireguard_client_state()
     if status_list is None or len(status_list) == 0:
@@ -222,19 +223,25 @@ async def test_wireguard_start() -> None:
     for i in range(10):
         status_list = await router.wireguard_client_state()
         first_status = status_list[0]
-        if "status" in first_status and first_status["status"] == 1 and "enabled" in first_status and first_status["enabled"]:
+        if (
+            "status" in first_status
+            and first_status["status"] == 1
+            and "enabled" in first_status
+            and first_status["enabled"]
+        ):
             break
         await asyncio.sleep(1)
 
         if i == 9:
             pytest.fail("WireGuard client took too long to connect.")
 
+
 @pytest.mark.asyncio
 async def test_wireguard_stop() -> None:
     """Test stopping the WireGuard client."""
-    assert (
-        PERFORM_DISTRUPTIVE_TESTS
-    ), "Disruptive tests are disabled, set PERFORM_DISTRUPTIVE_TESTS to True to run this test."
+    assert PERFORM_DISTRUPTIVE_TESTS, (
+        "Disruptive tests are disabled, set PERFORM_DISTRUPTIVE_TESTS to True to run this test."
+    )
 
     info_response = await router.router_info()
     firmware_version = info_response["firmware_version"]
@@ -274,7 +281,7 @@ async def test_wireguard_stop() -> None:
 @pytest.mark.asyncio
 async def test_tailscale_status() -> None:
     """Test retrieving the Tailscale status."""
-    response = await router._tailscale_status() # pylint: disable=protected-access
+    response = await router._tailscale_status()  # pylint: disable=protected-access
     print(response)
     assert dict(response).get("status", 0) in [1, 2, 3, 4] or response == []
 
@@ -298,7 +305,7 @@ async def test_tailscale_configured() -> None:
 @pytest.mark.asyncio
 async def test_tailscale_get_config() -> None:
     """Test retrieving the Tailscale configuration."""
-    response = await router._tailscale_get_config() # pylint: disable=protected-access
+    response = await router._tailscale_get_config()  # pylint: disable=protected-access
     print(response["enabled"])
     assert response["enabled"] in [True, False]
 
@@ -306,9 +313,9 @@ async def test_tailscale_get_config() -> None:
 @pytest.mark.asyncio
 async def test_tailscale_start() -> None:
     """Test starting Tailscale."""
-    assert (
-        PERFORM_DISTRUPTIVE_TESTS
-    ), "Disruptive tests are disabled, set PERFORM_DISTRUPTIVE_TESTS to True to run this test."
+    assert PERFORM_DISTRUPTIVE_TESTS, (
+        "Disruptive tests are disabled, set PERFORM_DISTRUPTIVE_TESTS to True to run this test."
+    )
     result = await router.tailscale_start()
     print(result)
     assert result in [True, False]
@@ -317,9 +324,9 @@ async def test_tailscale_start() -> None:
 @pytest.mark.asyncio
 async def test_tailscale_stop() -> None:
     """Test stopping Tailscale."""
-    assert (
-        PERFORM_DISTRUPTIVE_TESTS
-    ), "Disruptive tests are disabled, set PERFORM_DISTRUPTIVE_TESTS to True to run this test."
+    assert PERFORM_DISTRUPTIVE_TESTS, (
+        "Disruptive tests are disabled, set PERFORM_DISTRUPTIVE_TESTS to True to run this test."
+    )
     result = await router.tailscale_stop()
     print(result)
     assert result in [True, False]
@@ -328,9 +335,9 @@ async def test_tailscale_stop() -> None:
 @pytest.mark.asyncio
 async def test_router_reboot() -> None:
     """Test rebooting the router."""
-    assert (
-        PERFORM_DISTRUPTIVE_TESTS
-    ), "Disruptive tests are disabled, set PERFORM_DISTRUPTIVE_TESTS to True to run this test."
+    assert PERFORM_DISTRUPTIVE_TESTS, (
+        "Disruptive tests are disabled, set PERFORM_DISTRUPTIVE_TESTS to True to run this test."
+    )
     response = await router.router_reboot()
     print(response)
     print("waiting `15s` for router to shutdown")
