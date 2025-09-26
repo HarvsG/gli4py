@@ -21,7 +21,7 @@ NEW_VPN_CLIENT_VERSION = Version(4, 8, 0, 0)
 class GLinet(Consumer):
     """A Python Client for the GL-inet API."""
 
-    _firmware_version: Optional[Version] = None
+    _firmware_version: Version | None = None
 
     def __init__(self, sid: Optional[str] = None, **kwargs):
         self.sid: str = sid
