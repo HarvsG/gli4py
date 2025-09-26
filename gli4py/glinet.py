@@ -328,7 +328,7 @@ class GLinet(Consumer):
         """
         if self._firmware_version is None:
             await self.router_info()
-        
+
         # If version is 4.8 or greater use vpn-client otherwise use wg-client
         target_call = "vpn-client" if self._firmware_version >= NEW_VPN_CLIENT_VERSION else "wg-client"
 
@@ -357,7 +357,7 @@ class GLinet(Consumer):
         """Sets the WireGuard client enabled state."""
         if self._firmware_version is None:
             await self.router_info()
-        
+
         # If version is 4.8 or greater use vpn-client otherwise use wg-client
         if self._firmware_version >= NEW_VPN_CLIENT_VERSION:
             return await self._request(
@@ -371,21 +371,22 @@ class GLinet(Consumer):
                     self.sid,
                 )
             )
-        else:
-            if enabled:
-                return await self._request(
-                        self.gen_sid_payload(
-                            "call",
-                            ["wg-client", "start", {"group_id": group_id, "peer_id": peer_id}],
-                            self.sid,
-                        )
-                    )
-            else:
-                return await self._request(
-                        self.gen_sid_payload("call", ["wg-client", "stop"], self.sid)
-                    )
 
-        
+        # Not version 4.8 or greater so use wg-client
+        # If enabled, call the start method with group_id and peer_id
+        if enabled:
+            return await self._request(
+                    self.gen_sid_payload(
+                        "call",
+                        ["wg-client", "start", {"group_id": group_id, "peer_id": peer_id}],
+                        self.sid,
+                    )
+                )
+
+        # Not enabled, call the stop method
+        return await self._request(
+                self.gen_sid_payload("call", ["wg-client", "stop"], self.sid)
+            )
 
     async def _tailscale_get_config(self) -> dict | bool:
         """
