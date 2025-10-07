@@ -6,19 +6,20 @@ from typing import Any, Optional
 from requests import Response, exceptions
 from uplink import Consumer, json, post, response_handler, AiohttpClient, timeout, Body
 from passlib.hash import md5_crypt, sha256_crypt, sha512_crypt
+from semver import Version
 
 from gli4py.enums import TailscaleConnection
-
 from .error_handling import APIClientError, AuthenticationError, raise_for_status  # , timeout_error
 
 
 # typical base url http://192.168.8.1/rpc
+NEW_VPN_CLIENT_VERSION = Version(4, 8, 0, 0)
 
 
-@response_handler(raise_for_status)
-@json
 class GLinet(Consumer):
     """A Python Client for the GL-inet API."""
+
+    _firmware_version: Version | None = None
 
     def __init__(self, sid: Optional[str] = None, **kwargs):
         self.sid: str = sid
@@ -52,11 +53,15 @@ class GLinet(Consumer):
         }
         return payload
 
+    @response_handler(raise_for_status)
+    @json
     @post("")
     @timeout(2)
     async def _request(self, data: Body) -> Response:
         """Base method to make a request to the GL-inet API."""
 
+    @response_handler(raise_for_status)
+    @json
     @post("")
     @timeout(5)
     async def _request_long_timeout(self, data: Body) -> Response:
@@ -137,9 +142,18 @@ class GLinet(Consumer):
 
     async def router_info(self) -> dict:
         """Retrieves information about the router, requires authentication."""
-        return await self._request(
+        response = await self._request(
             self.gen_sid_payload("call", ["system", "get_info"], self.sid)
         )
+
+        # Sanity check for firmware version
+        if "firmware_version" in response:
+            self._firmware_version = Version.parse(response["firmware_version"])
+        else:
+            # No firmware version found, error
+            raise ValueError("No firmware version found in router info")
+
+        return response
 
     async def router_get_status(self) -> dict[str, list[dict[str, Any]]]:
         """Retrieves the status of the router, requires authentication."""
@@ -291,7 +305,7 @@ class GLinet(Consumer):
 
     # VPN information
 
-    async def wireguard_client_list(self) -> dict:
+    async def wireguard_client_list(self) -> list[dict[str, any]]:
         """Gets the list of WireGuard clients."""
         response: dict = await self._request(
             self.gen_sid_payload("call", ["wg-client", "get_all_config_list"], self.sid)
@@ -310,30 +324,82 @@ class GLinet(Consumer):
                 )
         return configs
 
-    async def wireguard_client_state(self) -> dict:
+    async def wireguard_client_state(self) -> list[dict[str, Any]]:
         """
-        {"rx_bytes":0,"ipv6":"","tx_bytes":0,"domain":"vpn.example.com","group_id":7707,"port":51820,"name":"TheOracle","peer_id":1341,"status":0,"proxy":True,"log":"","ipv4":""}
-        status 0:not start 1:connected 2:connecting
+        Firmware 4.8 and greater returns a list of status objects
+        {"status_list": [{"rx_bytes":0,"ipv6":"","tx_bytes":0,"domain":"vpn.example.com","group_id":7707,"port":51820,"name":"TheOracle","peer_id":1341,"enabled":true,"proxy":True,"log":"","ipv4":""}]}
+        Firmware less than 4.8 returns a single status object of the most recently started client
+        {"rx_bytes":0,"ipv6":"","tx_bytes":0,"domain":"vpn.example.com","group_id":7707,"port":51820,"name":"TheOracle","peer_id":1341,"enabled":true,"proxy":True,"log":"","ipv4":""}
         """
-        return await self._request(
-            self.gen_sid_payload("call", ["wg-client", "get_status"], self.sid)
+        if self._firmware_version is None:
+            await self.router_info()
+
+        # If version is 4.8 or greater use vpn-client otherwise use wg-client
+        target_call = "vpn-client" if self._firmware_version >= NEW_VPN_CLIENT_VERSION else "wg-client"
+
+        response = await self._request(
+            self.gen_sid_payload("call", [target_call, "get_status"], self.sid)
         )
 
-    async def wireguard_client_start(self, group_id: int, peer_id: int) -> dict:
-        """Starts a WireGuard client with the specified group ID and peer ID."""
-        return await self._request(
+        if self._firmware_version < NEW_VPN_CLIENT_VERSION:
+            # If the version is less than 4.8 we need to adjust the response to match the new format
+            # The old format does not return an array, but just a single object.
+            # We will wrap it in an array to match the new format.
+            return [response]
+
+        return response.get("status_list", [])
+
+    async def wireguard_client_start(
+        self, group_id: int, peer_or_tunnel_id: int
+    ) -> dict:
+        """Starts a WireGuard client with the specified tunnel ID."""
+        return await self._wireguard_set_client_enabled(
+            group_id, peer_or_tunnel_id, True
+        )
+
+    async def wireguard_client_stop(self, peer_or_tunnel_id: int) -> dict:
+        """Stops the WireGuard client with the specified tunnel ID."""
+        # Pass -1 for group_id and peer_id as they are not needed to stop the client
+        return await self._wireguard_set_client_enabled(-1, peer_or_tunnel_id, False)
+
+    async def _wireguard_set_client_enabled(
+        self, group_id: int, peer_or_tunnel_id: int, enabled: bool
+    ) -> dict:
+        """Sets the WireGuard client enabled state."""
+        if self._firmware_version is None:
+            await self.router_info()
+
+        # If version is 4.8 or greater use vpn-client otherwise use wg-client
+        if self._firmware_version >= NEW_VPN_CLIENT_VERSION:
+            tunnel_id = peer_or_tunnel_id
+            return await self._request(
             self.gen_sid_payload(
-                "call",
-                ["wg-client", "start", {"group_id": group_id, "peer_id": peer_id}],
-                self.sid,
+                    "call",
+                    [
+                        "vpn-client",
+                        "set_tunnel",
+                        {"enabled": enabled, "tunnel_id": tunnel_id},
+                    ],
+                    self.sid,
+                )
             )
-        )
 
-    async def wireguard_client_stop(self) -> dict:
-        """Stops the WireGuard client."""
+        # Not version 4.8 or greater so use wg-client
+        # If enabled, call the start method with group_id and peer_id
+        peer_id = peer_or_tunnel_id
+        if enabled:
+            return await self._request(
+                    self.gen_sid_payload(
+                        "call",
+                        ["wg-client", "start", {"group_id": group_id, "peer_id": peer_id}],
+                        self.sid,
+                    )
+                )
+
+        # Not enabled, call the stop method
         return await self._request(
-            self.gen_sid_payload("call", ["wg-client", "stop"], self.sid)
-        )
+                self.gen_sid_payload("call", ["wg-client", "stop"], self.sid)
+            )
 
     async def _tailscale_get_config(self) -> dict | bool:
         """
