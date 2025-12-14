@@ -142,6 +142,27 @@ class ModemNetwork:
 
 
 @dataclass(slots=True)
+class CellInfo:
+    """Cell details from modem.get_cells_info."""
+
+    ul_bandwidth: str | None
+    dl_bandwidth: str | None
+    rsrp: int | None
+    id: str | None
+    rssi: int | None
+    tx_channel: str | None
+    sinr_level: int | None
+    rsrq_level: int | None
+    sinr: int | None
+    rsrq: int | None
+    rssi_level: int | None
+    rsrp_level: int | None
+    mode: str | None
+    band: int | None
+    type: str | None
+
+
+@dataclass(slots=True)
 class ModemStatusEntry:
     """Status entry returned by modem.get_status."""
 
@@ -156,6 +177,7 @@ class ModemStatusEntry:
     sim_mnc: str | None
     signal: ModemSignal | None
     network: ModemNetwork | None
+    cells_info: list[CellInfo] | None
     connection_state: ModemConnectionState
     new_sms_count: int | None
     passthrough: JSONDict | None
@@ -190,12 +212,31 @@ class ModemManager:
 
         return await self._rpc_call("modem", "get_info", {})
 
+    async def fetch_cells_info(self, bus: str) -> JSONDict:
+        """Return raw cell information for a modem."""
+
+        return await self._rpc_call("modem", "get_cells_info", {"bus": bus})
+
     async def get_status(self) -> list[ModemStatusEntry]:
         """Fetch and parse modem status."""
 
         payload = await self.fetch_modem_status()
         modems = payload.get("modems", []) if isinstance(payload, dict) else []
-        return [self._parse_status_entry(entry) for entry in modems]
+
+        parsed_entries: list[ModemStatusEntry] = []
+        for entry in modems:
+            if not isinstance(entry, dict):
+                continue
+            bus = entry.get("bus")
+            cells_info: list[CellInfo] | None = None
+            if bus is not None:
+                try:
+                    cells_payload = await self.fetch_cells_info(str(bus))
+                    cells_info = self._parse_cells_info(cells_payload)
+                except Exception:  # noqa: BLE001
+                    cells_info = None
+            parsed_entries.append(self._parse_status_entry(entry, cells_info))
+        return parsed_entries
 
     async def get_info(self) -> list[ModemInfo]:
         """Fetch and parse modem hardware info."""
@@ -204,7 +245,12 @@ class ModemManager:
         modems = payload.get("modems", []) if isinstance(payload, dict) else []
         return [self._parse_info(entry) for entry in modems]
 
-    @staticmethod
+    async def get_cells_info(self, bus: str) -> list[CellInfo] | None:
+        """Fetch and return parsed cell information for a modem."""
+
+        payload = await self.fetch_cells_info(bus)
+        return self._parse_cells_info(payload)
+
     @staticmethod
     def _parse_info(entry: JSONDict) -> ModemInfo:
         """Parse a modem entry from modem.get_info."""
@@ -254,7 +300,9 @@ class ModemManager:
         )
 
     @staticmethod
-    def _parse_status_entry(entry: JSONDict) -> ModemStatusEntry:
+    def _parse_status_entry(
+        entry: JSONDict, cells_info: list[CellInfo] | None = None
+    ) -> ModemStatusEntry:
         """Parse a modem entry from modem.get_status."""
 
         sim_entry = entry.get("simcard") or {}
@@ -373,9 +421,54 @@ class ModemManager:
             sim_mnc=sim_entry.get("mnc"),
             signal=_parse_signal(),
             network=network_parsed,
+            cells_info=cells_info,
             connection_state=conn_state,
             new_sms_count=entry.get("new_sms_count"),
             passthrough=entry.get("passthrough"),
             err_code=entry.get("err_code"),
             err_msg=entry.get("err_msg"),
         )
+
+    @staticmethod
+    def _parse_cells_info(payload: JSONDict | None) -> list[CellInfo] | None:
+        """Parse cell info payload."""
+
+        if not isinstance(payload, dict):
+            return None
+        body: JSONDict = payload.get("result", payload) if isinstance(payload, dict) else {}
+        cells = body.get("cells") if isinstance(body, dict) else None
+        if not isinstance(cells, list):
+            return None
+
+        parsed: list[CellInfo] = []
+
+        def _as_int(value: Any) -> int | None:
+            try:
+                return int(value) if value is not None else None
+            except (TypeError, ValueError):
+                return None
+
+        for cell in cells:
+            if not isinstance(cell, dict):
+                continue
+            parsed.append(
+                CellInfo(
+                    ul_bandwidth=cell.get("ul_bandwidth"),
+                    dl_bandwidth=cell.get("dl_bandwidth"),
+                    rsrp=_as_int(cell.get("rsrp")),
+                    id=str(cell.get("id")) if cell.get("id") is not None else None,
+                    rssi=_as_int(cell.get("rssi")),
+                    tx_channel=str(cell.get("tx_channel")) if cell.get("tx_channel") is not None else None,
+                    sinr_level=_as_int(cell.get("sinr_level")),
+                    rsrq_level=_as_int(cell.get("rsrq_level")),
+                    sinr=_as_int(cell.get("sinr")),
+                    rsrq=_as_int(cell.get("rsrq")),
+                    rssi_level=_as_int(cell.get("rssi_level")),
+                    rsrp_level=_as_int(cell.get("rsrp_level")),
+                    mode=cell.get("mode"),
+                    band=_as_int(cell.get("band")),
+                    type=cell.get("type"),
+                )
+            )
+
+        return parsed or None
