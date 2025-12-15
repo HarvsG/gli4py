@@ -38,8 +38,9 @@ class ModemNetworkMode(IntEnum):
     GSM = 2
     UMTS = 3
     LTE = 4
-    FIVE_G = 5
     LTE_ADVANCED = 41
+    FIVE_G = 5
+    FIVE_G_NSA = 51
 
     @property
     def label(self) -> str:
@@ -49,8 +50,9 @@ class ModemNetworkMode(IntEnum):
             ModemNetworkMode.GSM: "2G",
             ModemNetworkMode.UMTS: "3G",
             ModemNetworkMode.LTE: "LTE",
-            ModemNetworkMode.FIVE_G: "5G",
             ModemNetworkMode.LTE_ADVANCED: "4G+",
+            ModemNetworkMode.FIVE_G: "5G",
+            ModemNetworkMode.FIVE_G_NSA: "5G",
         }.get(self, self.name)
 
 
