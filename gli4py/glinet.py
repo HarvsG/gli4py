@@ -120,7 +120,7 @@ class GLinet(Consumer):
                 hsh = hashlib.md5(data.encode()).hexdigest()
             elif hash_method == "sha256":  # SHA-256
                 hsh = hashlib.sha256(data.encode()).hexdigest()
-            elif hash_method == "sha256":  # SHA-512
+            elif hash_method == "sha512":  # SHA-512
                 hsh = hashlib.sha512(data.encode()).hexdigest()
             else:
                 raise ValueError("Router requested unsupported hashing algorithm for hash")
