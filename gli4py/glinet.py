@@ -509,4 +509,3 @@ class GLinet(Consumer):
     def logged_in(self) -> bool:
         """Returns whether the client is logged in."""
         return self._logged_in
-
