@@ -214,6 +214,18 @@ class ModemManager:
 
         return await self._rpc_call("modem", "get_info", {})
 
+    async def reboot_modem(self, bus: str, *, hw_reboot: bool = True) -> JSONDict:
+        """Reboot a modem, optionally forcing hardware reboot."""
+
+        return await self._rpc_call(
+            "modem",
+            "reboot_modem",
+            {
+                "bus": bus,
+                "hw_reboot": hw_reboot,
+            },
+        )
+
     async def fetch_cells_info(self, bus: str) -> JSONDict:
         """Return raw cell information for a modem."""
 
