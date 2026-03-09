@@ -108,6 +108,7 @@ class GLinet(Consumer):
     async def login(self, username: str, password: str) -> None:
         """Logs in to the GL-inet router using the provided username and password."""
 
+        # pylint: disable=too-many-arguments, too-many-positional-arguments
         def _compute_hash(alg, salt, nonce, hash_method, username, password) -> str:
             """Synchronous helper for CPU-bound hashing."""
             # Step2: Generate cipher text using openssl algorithm
