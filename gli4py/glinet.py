@@ -2,17 +2,21 @@
 
 import asyncio
 import hashlib
-import pydantic
 from typing import Any
 
-from requests import Response, exceptions
-from uplink import Consumer, json, post, response_handler, AiohttpClient, timeout, Body
+import pydantic
 from passlib.hash import md5_crypt, sha256_crypt, sha512_crypt
-
+from requests import Response, exceptions
 from semver import Version
+from uplink import AiohttpClient, Body, Consumer, json, post, response_handler, timeout
 
 from gli4py.enums import TailscaleConnection
-from .error_handling import APIClientError, AuthenticationError, raise_for_status  # , timeout_error
+
+from .error_handling import (  # , timeout_error
+    APIClientError,
+    AuthenticationError,
+    raise_for_status,
+)
 
 # Force Pydantic to resolve its lazy imports to prevent HA event loop blocking
 _ = pydantic.BaseModel
