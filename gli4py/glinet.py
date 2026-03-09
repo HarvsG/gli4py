@@ -3,6 +3,7 @@
 import asyncio
 import hashlib
 from typing import Any
+
 from requests import Response, exceptions
 from uplink import Consumer, json, post, response_handler, AiohttpClient, timeout, Body
 from passlib.hash import md5_crypt, sha256_crypt, sha512_crypt
@@ -10,6 +11,10 @@ from semver import Version
 
 from gli4py.enums import TailscaleConnection
 from .error_handling import APIClientError, AuthenticationError, raise_for_status  # , timeout_error
+
+# Force Pydantic to resolve its lazy imports to prevent HA event loop blocking
+import pydantic
+_ = pydantic.BaseModel
 
 
 # typical base url http://192.168.8.1/rpc
@@ -98,14 +103,8 @@ class GLinet(Consumer):
     async def login(self, username: str, password: str) -> None:
         """Logs in to the GL-inet router using the provided username and password."""
 
-        try:
-            res = await self._challenge(username)
-
-            alg = res["alg"]
-            salt = res["salt"]
-            nonce = res["nonce"]
-            hash_method = res.get("hash-method", "md5")
-
+        def _compute_hash(alg, salt, nonce, hash_method, username, password) -> str:
+            """Synchronous helper for CPU-bound hashing."""
             # Step2: Generate cipher text using openssl algorithm
             if alg == 1:  # MD5
                 cipher_password = md5_crypt.using(salt=salt).hash(password)
@@ -123,13 +122,26 @@ class GLinet(Consumer):
             # Step3: Generate hash values for login
             data = f"{username}:{cipher_password}:{nonce}"
             if hash_method == "md5":  # MD5
-                hsh = hashlib.md5(data.encode()).hexdigest()
-            elif hash_method == "sha256":  # SHA-256
-                hsh = hashlib.sha256(data.encode()).hexdigest()
-            elif hash_method == "sha512":  # SHA-512
-                hsh = hashlib.sha512(data.encode()).hexdigest()
-            else:
-                raise ValueError("Router requested unsupported hashing algorithm for hash")
+                return hashlib.md5(data.encode()).hexdigest()
+            if hash_method == "sha256":  # SHA-256
+                return hashlib.sha256(data.encode()).hexdigest()
+            if hash_method == "sha512":  # SHA-512
+                return hashlib.sha512(data.encode()).hexdigest()
+
+            raise ValueError("Router requested unsupported hashing algorithm for hash")
+
+        try:
+            res = await self._challenge(username)
+
+            alg = res["alg"]
+            salt = res["salt"]
+            nonce = res["nonce"]
+            hash_method = res.get("hash-method", "md5")
+
+            # Run the heavy, blocking cryptography operations in a separate thread
+            hsh = await asyncio.to_thread(
+                _compute_hash, alg, salt, nonce, hash_method, username, password
+            )
 
             # Step4: Get sid by login
             res = await self._get_sid(username, hsh)
