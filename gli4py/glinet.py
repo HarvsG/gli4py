@@ -2,7 +2,7 @@
 
 import asyncio
 import hashlib
-from typing import Any, Optional
+from typing import Any
 from requests import Response, exceptions
 from uplink import Consumer, json, post, response_handler, AiohttpClient, timeout, Body
 from passlib.hash import md5_crypt, sha256_crypt, sha512_crypt
@@ -21,12 +21,18 @@ class GLinet(Consumer):
 
     _firmware_version: Version | None = None
 
-    def __init__(self, sid: Optional[str] = None, **kwargs):
+    def __init__(
+        self,
+        sid: str | None = None,
+        client: AiohttpClient | None = None,
+        **kwargs,
+    ):
         self.sid: str = sid
         self._logged_in = self.sid is not None
+        client = client or AiohttpClient()
 
         # initialise the super class
-        super().__init__(client=AiohttpClient(), **kwargs)
+        super().__init__(client=client, **kwargs)
 
     @staticmethod
     def gen_sid_payload(method: str, params: list, sid: str = None) -> dict:
