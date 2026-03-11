@@ -25,11 +25,11 @@ class TokenError(AuthenticationError):
 
 async def raise_for_status(response: ClientResponse) -> dict:
     """Checks whether or not the response was successful."""
-    
+
     # 1. Safely read the body as JSON, falling back to text if it's HTML
     try:
         # content_type=None forces aiohttp to parse it even if the router sends the wrong headers
-        res = await response.json(content_type=None) 
+        res = await response.json(content_type=None)
     except Exception:
         text = await response.text()
         raise UnsuccessfulRequest(f"Request failed or returned invalid JSON (Status {response.status}): {text}")
@@ -38,13 +38,13 @@ async def raise_for_status(response: ClientResponse) -> dict:
     if 200 <= response.status < 300:
         if "result" in res:
             return res["result"]
-            
+
         if "error" not in res:
             raise ConnectionError(f"Unexpected response from GLinet router {res}")
-            
+
         if "message" not in res["error"]:
             res["error"]["message"] = "null"
-            
+
         code = res["error"].get("code", 0)
         if code == -1:
             raise TokenError(f"Request returned error code -1 ({res['error']['message']})")
@@ -52,7 +52,7 @@ async def raise_for_status(response: ClientResponse) -> dict:
             raise AuthenticationError(f"Request returned error code -32000 ({res['error']['message']})")
         if code < 0:
             raise NonZeroResponse(f"Request returned error code {code} with message: {res['error']['message']}")
-            
+
         return res
-        
+
     raise UnsuccessfulRequest(f"Request failed with status {response.status}: {res}")
