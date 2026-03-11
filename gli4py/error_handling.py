@@ -23,42 +23,38 @@ class AuthenticationError(NonZeroResponse):
 class TokenError(AuthenticationError):
     """Should be raised when the token is invalid or expired"""
 
+from aiohttp import ClientResponse
 
-def raise_for_status(response: Response) -> dict:
+async def raise_for_status(response: ClientResponse) -> dict:
     """Checks whether or not the response was successful."""
-    # 1. Read the body to guarantee aiohttp releases the connection back to the pool
+    
+    # 1. Safely read the body as JSON, falling back to text if it's HTML
     try:
-        text = (
-            response.text()
-            if callable(getattr(response, "text", None))
-            else response.text
-        )
-    except Exception:  # pylint: disable=broad-except  # noqa: BLE001
-        text = ""
+        # content_type=None forces aiohttp to parse it even if the router sends the wrong headers
+        res = await response.json(content_type=None) 
+    except Exception:
+        text = await response.text()
+        raise UnsuccessfulRequest(f"Request failed or returned invalid JSON (Status {response.status}): {text}")
 
+    # 2. Process the GL-iNet logic
     if 200 <= response.status < 300:
-        res: dict = loads(text)
         if "result" in res:
             return res["result"]
-
-        # Gl-inet's api uses its own error codes that are returned in
-        # status 200 messages - this is out of spec so we must handle it
+            
         if "error" not in res:
             raise ConnectionError(f"Unexpected response from GLinet router {res}")
+            
         if "message" not in res["error"]:
             res["error"]["message"] = "null"
-        if res["error"]["code"] == -1:
-            raise TokenError(
-                f"Request returned error code -1 ({res['error']['message']}), is the token expired or the password wrong?"
-            )
-        if res["error"]["code"] == -32000:
-            raise AuthenticationError(
-                f"Request returned error code -32000 ({res['error']['message']}), is password wrong or the hashing process incorrect?"
-            )
-        if res["error"]["code"] < 0:
-            raise NonZeroResponse(
-                f"Request returned error code {res['error']['code']} with message: {res['error']['message']}. Full response: {res}"
-            )
+            
+        code = res["error"].get("code", 0)
+        if code == -1:
+            raise TokenError(f"Request returned error code -1 ({res['error']['message']})")
+        if code == -32000:
+            raise AuthenticationError(f"Request returned error code -32000 ({res['error']['message']})")
+        if code < 0:
+            raise NonZeroResponse(f"Request returned error code {code} with message: {res['error']['message']}")
+            
         return res
-
-    raise UnsuccessfulRequest(f"Request failed with status {response.status}: {text}")
+        
+    raise UnsuccessfulRequest(f"Request failed with status {response.status}: {res}")
