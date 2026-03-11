@@ -33,7 +33,7 @@ def raise_for_status(response: Response) -> dict:
             if callable(getattr(response, "text", None))
             else response.text
         )
-    except Exception:
+    except Exception:  # pylint: disable=broad-except  # noqa: BLE001
         text = ""
 
     if 200 <= response.status < 300:
