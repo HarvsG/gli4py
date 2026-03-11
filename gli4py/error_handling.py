@@ -1,7 +1,7 @@
 """This module contains custom exceptions and a function to handle API response status codes."""
 
 from json import loads
-from requests import Response
+from aiohttp import ClientResponse
 
 
 class APIClientError(Exception):
@@ -22,8 +22,6 @@ class AuthenticationError(NonZeroResponse):
 
 class TokenError(AuthenticationError):
     """Should be raised when the token is invalid or expired"""
-
-from aiohttp import ClientResponse
 
 async def raise_for_status(response: ClientResponse) -> dict:
     """Checks whether or not the response was successful."""
