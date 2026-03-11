@@ -1,6 +1,5 @@
 """This module contains custom exceptions and a function to handle API response status codes."""
 
-from json import loads
 from aiohttp import ClientResponse
 
 
@@ -30,9 +29,9 @@ async def raise_for_status(response: ClientResponse) -> dict:
     try:
         # content_type=None forces aiohttp to parse it even if the router sends the wrong headers
         res = await response.json(content_type=None)
-    except Exception:
+    except Exception as exc:
         text = await response.text()
-        raise UnsuccessfulRequest(f"Request failed or returned invalid JSON (Status {response.status}): {text}")
+        raise UnsuccessfulRequest(f"Request failed or returned invalid JSON (Status {response.status}): {text}") from exc
 
     # 2. Process the GL-iNet logic
     if 200 <= response.status < 300:
