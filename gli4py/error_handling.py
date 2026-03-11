@@ -26,10 +26,21 @@ class TokenError(AuthenticationError):
 
 def raise_for_status(response: Response) -> dict:
     """Checks whether or not the response was successful."""
+    # 1. Read the body to guarantee aiohttp releases the connection back to the pool
+    try:
+        text = (
+            response.text()
+            if callable(getattr(response, "text", None))
+            else response.text
+        )
+    except Exception:
+        text = ""
+
     if 200 <= response.status < 300:
-        res: dict = loads(response.text())
+        res: dict = loads(text)
         if "result" in res:
             return res["result"]
+
         # Gl-inet's api uses its own error codes that are returned in
         # status 200 messages - this is out of spec so we must handle it
         if "error" not in res:
@@ -48,5 +59,6 @@ def raise_for_status(response: Response) -> dict:
             raise NonZeroResponse(
                 f"Request returned error code {res['error']['code']} with message: {res['error']['message']}. Full response: {res}"
             )
+        return res
 
-    raise UnsuccessfulRequest(response.status_code, response.url)
+    raise UnsuccessfulRequest(f"Request failed with status {response.status}: {text}")
