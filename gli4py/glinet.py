@@ -179,6 +179,28 @@ class GLinet(Consumer):
 
         return response
 
+    async def modem_info(self) -> dict:
+        """Retrieves information about the modems, requires authentication."""
+        response = await self._request(
+            self.gen_sid_payload("call", ["modem", "get_info"], self.sid)
+        )
+        return response
+
+    async def modem_sim_info(self) -> dict:
+        """Retrieves information about the modems, requires authentication."""
+        response = await self._request(
+            self.gen_sid_payload("call", ["modem", "get_sim_info"], self.sid)
+        )
+        return response
+
+    async def modem_sim_signal(self) -> dict:
+        """Retrieves information about the modems, requires authentication."""
+        response = await self._request(
+            self.gen_sid_payload("call", ["modem", "get_sim_signal"], self.sid)
+        )
+        return response
+
+ 
     async def router_get_status(self) -> dict[str, list[dict[str, Any]]]:
         """Retrieves the status of the router, requires authentication."""
         response: dict[str, list[dict[str, Any]]] = await self._request(
