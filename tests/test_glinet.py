@@ -156,6 +156,59 @@ async def test_ping() -> None:
     assert not response
 
 
+async def test_wan_cable_state() -> None:
+    """Test retrieving WAN cable state."""
+    response = await router.wan_cable_state()
+    print(response)
+    assert response["cable_enabled"] in [True, False]
+    assert response["cable_inserted"] in [True, False]
+
+
+async def test_wan_status() -> None:
+    """Test retrieving WAN connection status."""
+    response = await router.wan_status()
+    print(response)
+    assert "status" in response
+    assert "protocol" in response
+
+
+async def test_wan_info() -> None:
+    """Test retrieving WAN interface address details."""
+    response = await router.wan_info()
+    print(response)
+    assert isinstance(response, list)
+    for entry in response:
+        assert "interface" in entry
+        assert "info" in entry
+
+
+async def test_ethernet_ports_status() -> None:
+    """Test retrieving ethernet port link status."""
+    ports = await router.ethernet_ports_status()
+    print(ports)
+    assert isinstance(ports, list)
+    for port in ports:
+        assert "name" in port
+
+
+async def test_network_mode() -> None:
+    """Test retrieving the operating mode."""
+    mode = await router.network_mode()
+    print(mode)
+    assert isinstance(mode, str)
+    assert mode != ""
+
+
+async def test_network_interfaces_status() -> None:
+    """Test retrieving per-interface online/up state."""
+    interfaces = await router.network_interfaces_status()
+    print(interfaces)
+    assert isinstance(interfaces, list)
+    for entry in interfaces:
+        assert "interface" in entry
+        assert entry["online"] in [True, False]
+
+
 async def test_wireguard_client_list() -> None:
     """Test retrieving the list of WireGuard clients."""
     response = await router.wireguard_client_list()
