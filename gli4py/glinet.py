@@ -229,6 +229,59 @@ class GLinet(Consumer):
             self.gen_sid_payload("call", ["edgerouter", "get_status"], self.sid)
         )
 
+    async def wan_cable_state(self) -> dict:
+        """WAN cable presence and macclone state, requires authentication
+        {"cable_enabled":True,"cable_inserted":True,"macclone_enabled":False}
+        The explicit empty params object is required; without it the router
+        answers HTTP 500.
+        """
+        return await self._request(
+            self.gen_sid_payload("call", ["network", "check_wan_cable", {}], self.sid)
+        )
+
+    async def wan_status(self) -> dict:
+        """WAN connection status, requires authentication
+        {"ipv4":{"dns":["192.0.2.53"],"gateway":"192.0.2.1","ip":"192.0.2.10/21"},
+        "mode":0,"protocol":"dhcp","status":1}
+        """
+        return await self._request(
+            self.gen_sid_payload("call", ["cable", "get_status", {}], self.sid)
+        )
+
+    async def wan_info(self) -> list:
+        """Address details for each WAN interface, requires authentication
+        [{"info":{"ipaddr":"192.0.2.10","netmask":"255.255.248.0","prefix":21},"interface":"wan"}]
+        """
+        response = await self._request(
+            self.gen_sid_payload("call", ["lan", "get_wan_info", {}], self.sid)
+        )
+        return response.get("wan_info", [])
+
+    async def ethernet_ports_status(self) -> list:
+        """Link status of each ethernet port, requires authentication
+        [{"duplex":"full","name":"WAN","speed":1000}]
+        """
+        response = await self._request(
+            self.gen_sid_payload("call", ["cable", "get_ports_status", {}], self.sid)
+        )
+        return response.get("ports", [])
+
+    async def network_mode(self) -> str:
+        """The operating mode, e.g. router/ap/repeater, requires authentication."""
+        response = await self._request(
+            self.gen_sid_payload("call", ["netmode", "get_mode", {}], self.sid)
+        )
+        return response.get("mode", "")
+
+    async def network_interfaces_status(self) -> list:
+        """Online/up state of each network interface, requires authentication
+        [{"interface":"wan","online":True,"up":True}]
+        """
+        response = await self._request(
+            self.gen_sid_payload("call", ["system", "get_network_status", {}], self.sid)
+        )
+        return response.get("network", [])
+
     async def list_all_clients(self) -> dict:
         """Gets all clients connected to the router."""
         return await self._request(
