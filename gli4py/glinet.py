@@ -200,7 +200,6 @@ class GLinet(Consumer):
         )
         return response
 
- 
     async def router_get_status(self) -> dict[str, list[dict[str, Any]]]:
         """Retrieves the status of the router, requires authentication."""
         response: dict[str, list[dict[str, Any]]] = await self._request(
@@ -240,7 +239,7 @@ class GLinet(Consumer):
         result = await self._request_long_timeout(
             self.gen_sid_payload("call", ["diag", "ping", {"addr": address}], self.sid)
         )
-        return not result == []
+        return result != []
 
     async def connected_to_internet(self) -> dict:
         """Is the internet reachable
