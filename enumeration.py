@@ -22,9 +22,7 @@ from pathlib import Path
 from gli4py.glinet import GLinet
 
 # ─── Complete API registry from GL.iNet SDK 4.0 API-DOCS.html ───
-# Each module maps to a list of (method, is_safe) tuples.
-# is_safe=True means the method only reads data (get_*, list_*, check_*).
-# is_safe=False means the method writes/modifies state.
+# Each module maps to a list of (method, is_safe_to_modify) tuples.
 
 API_REGISTRY: dict[str, list[tuple[str, bool]]] = {
     "acl": [
@@ -562,7 +560,6 @@ API_REGISTRY: dict[str, list[tuple[str, bool]]] = {
     ],
 }
 
-# ─── Sensitive keys to redact from output ───
 
 _SENSITIVE_KEYS = frozenset(
     {
