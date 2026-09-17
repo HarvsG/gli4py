@@ -1,0 +1,806 @@
+#!/usr/bin/env python3
+"""GL.iNet Router API Enumeration Script.
+
+Probes a GL.iNet router to discover which API modules and methods are
+supported by the device's firmware. Produces a JSON report that can be
+contributed to build a model→feature-set registry.
+
+Usage:
+    python3 enumeration.py --url http://192.168.0.4/rpc --pwd-file router_pwd
+    python3 enumeration.py --url http://192.168.0.4/rpc --pwd-file router_pwd --output report.json
+    python3 enumeration.py --url http://192.168.0.4/rpc --pwd-file router_pwd --read-only
+"""
+
+import argparse
+import asyncio
+import json
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+from gli4py.glinet import GLinet
+
+# ─── Complete API registry from GL.iNet SDK 4.0 API-DOCS.html ───
+# Each module maps to a list of (method, is_safe) tuples.
+# is_safe=True means the method only reads data (get_*, list_*, check_*).
+# is_safe=False means the method writes/modifies state.
+
+API_REGISTRY: dict[str, list[tuple[str, bool]]] = {
+    "acl": [
+        ("add_group", False),
+        ("add_acl", False),
+        ("add_user", False),
+        ("remove_group", False),
+        ("remove_acl", False),
+        ("remove_user", False),
+        ("get_group_list", True),
+        ("get_acl_list", True),
+    ],
+    "adguardhome": [
+        ("get_config", True),
+        ("set_config", False),
+    ],
+    "bark": [
+        ("get_status", True),
+        ("get_config", True),
+        ("set_config", False),
+        ("logout", False),
+    ],
+    "black_white_list": [
+        ("get_config", True),
+        ("set_single_mac", False),
+        ("set_config", False),
+    ],
+    "cable": [
+        ("set_config", False),
+        ("change_interface", False),
+        ("get_status", True),
+        ("get_config", True),
+    ],
+    "clients": [
+        ("get_list", True),
+        ("remove_offline", False),
+        ("block_client", False),
+        ("get_status", True),
+        ("set_info", False),
+        ("clean_traffic", False),
+    ],
+    "cloud": [
+        ("bind_info", True),
+        ("get_batch_config", True),
+        ("get_config", True),
+        ("set_batch_config", False),
+        ("set_config", False),
+        ("unbind", False),
+    ],
+    "cloud-batch-manage": [
+        ("bind_info", True),
+        ("designated_customer", False),
+        ("get_2b_config", True),
+        ("get_batch_config", True),
+        ("send_router_info", False),
+        ("set_2b_config", False),
+        ("set_batch_config", False),
+    ],
+    "ddns": [
+        ("get_config", True),
+        ("get_status", True),
+        ("set_config", False),
+    ],
+    "diag": [
+        ("ping", True),
+        ("traceroute", True),
+    ],
+    "dlna": [
+        ("get_config", True),
+        ("set_config", False),
+    ],
+    "dns": [
+        ("get_config", True),
+        ("get_host", True),
+        ("get_info", True),
+        ("set_config", False),
+        ("set_host", False),
+    ],
+    "edgerouter": [
+        ("get_config", True),
+        ("get_status", True),
+        ("set_config", False),
+    ],
+    "fan": [
+        ("get_config", True),
+        ("get_status", True),
+        ("set_config", False),
+        ("set_test", False),
+    ],
+    "firewall": [
+        ("add_port_forward", False),
+        ("add_rule", False),
+        ("get_dmz", True),
+        ("get_port_forward_list", True),
+        ("get_rule_list", True),
+        ("get_wan_access", True),
+        ("get_zone_list", True),
+        ("remove_port_forward", False),
+        ("remove_rule", False),
+        ("set_dmz", False),
+        ("set_port_forward", False),
+        ("set_rule", False),
+        ("set_wan_access", False),
+    ],
+    "igmp": [
+        ("get_config", True),
+        ("set_config", False),
+    ],
+    "ipv6": [
+        ("get_ipv6", True),
+        ("set_ipv6", False),
+    ],
+    "kmwan": [
+        ("get_config", True),
+        ("get_status", True),
+        ("set_config", False),
+        ("set_interface", False),
+        ("set_sensitivity", False),
+    ],
+    "lan": [
+        ("add_static_bind", False),
+        ("get_config_list", True),
+        ("get_static_bind_list", True),
+        ("remove_static_bind", False),
+        ("set_config", False),
+        ("set_static_bind", False),
+    ],
+    "led": [
+        ("get_config", True),
+        ("set_config", False),
+    ],
+    "local-access": [
+        ("get_config", True),
+        ("set_config", False),
+    ],
+    "logread": [
+        ("export_logs", True),
+        ("get_config", True),
+        ("get_crash_log", True),
+        ("get_kernel_log", True),
+        ("get_nginx_log", True),
+        ("get_system_log", True),
+        ("remove_crash_log", False),
+        ("set_config", False),
+    ],
+    "macclone": [
+        ("get_mac", True),
+        ("set_mac", False),
+    ],
+    "mcu": [
+        ("get_battery_config", True),
+        ("get_oled_config", True),
+        ("set_battery_config", False),
+        ("set_oled_config", False),
+    ],
+    "modem": [
+        ("disconnect", False),
+        ("get_cell_tower", True),
+        ("get_cells_info", True),
+        ("get_config", True),
+        ("get_debug_msg", True),
+        ("get_info", True),
+        ("get_name", True),
+        ("get_profile_list", True),
+        ("get_signals", True),
+        ("get_sim_info", True),
+        ("get_sim_signal", True),
+        ("get_slot_config", True),
+        ("get_sms_list", True),
+        ("get_status", True),
+        ("get_traffic_config", True),
+        ("reboot_modem", False),
+        ("remove_profile", False),
+        ("remove_sms", False),
+        ("reset_traffic_count", False),
+        ("scan_cell_tower", False),
+        ("send_at_command", False),
+        ("send_sms", False),
+        ("set_auto_connect", False),
+        ("set_cell_tower", False),
+        ("set_connect", False),
+        ("set_slot_config", False),
+        ("set_sms", False),
+        ("set_traffic_auto_save", False),
+        ("set_upgrade", False),
+    ],
+    "mwan3": [
+        ("get_config", True),
+        ("get_status", True),
+        ("set_config", False),
+        ("set_interface", False),
+    ],
+    "nas-web": [
+        ("add_share", False),
+        ("add_user", False),
+        ("eject_disk", False),
+        ("get_disk_list", True),
+        ("get_file_list", True),
+        ("get_nas_ser", True),
+        ("get_proto_config", True),
+        ("get_share_list", True),
+        ("get_status", True),
+        ("get_user_list", True),
+        ("remove_share", False),
+        ("remove_user", False),
+        ("set_nas_ser", False),
+        ("set_proto_config", False),
+        ("set_share", False),
+        ("set_user_pwd", False),
+        ("start", False),
+    ],
+    "netmode": [
+        ("get_mode", True),
+        ("set_mode", False),
+    ],
+    "network": [
+        ("check_wan_cable", True),
+        ("get_arp_list", True),
+        ("get_dhcp_leases", True),
+        ("get_hwnat_config", True),
+        ("get_netnat_config", True),
+        ("routes", True),
+        ("routes6", True),
+        ("set_hwnat_config", False),
+        ("set_netnat_config", False),
+    ],
+    "otbr": [
+        ("add_joiner", False),
+        ("export_joiner_list", True),
+        ("export_network_data", True),
+        ("export_thread_network", True),
+        ("generate_thread_network", False),
+        ("get_bbr_status", True),
+        ("get_joiner_list", True),
+        ("get_neighbor_list", True),
+        ("get_network_data", True),
+        ("get_srp_server_config", True),
+        ("get_srp_server_service", True),
+        ("get_status", True),
+        ("import_joiner_list", False),
+        ("import_thread_network", False),
+        ("join", False),
+        ("rejoin_all", False),
+        ("remove_joiner_list", False),
+        ("scan", True),
+        ("set_bbr_config", False),
+        ("set_commissioning", False),
+        ("set_config", False),
+        ("set_srp_server_config", False),
+        ("set_txpower", False),
+        ("start", False),
+        ("stop", False),
+    ],
+    "ovpn-client": [
+        ("add_config", False),
+        ("add_group", False),
+        ("add_route", False),
+        ("check_config", True),
+        ("clear_config_list", False),
+        ("confirm_config", False),
+        ("get_all_config_list", True),
+        ("get_config_list", True),
+        ("get_group_list", True),
+        ("get_recommend_config", True),
+        ("get_route_list", True),
+        ("get_setting", True),
+        ("get_status", True),
+        ("get_third_config", True),
+        ("remove_config", False),
+        ("remove_group", False),
+        ("remove_route", False),
+        ("set_config", False),
+        ("set_group", False),
+        ("set_route", False),
+        ("set_setting", False),
+        ("start", False),
+        ("stop", False),
+    ],
+    "ovpn-server": [
+        ("add_route", False),
+        ("add_user", False),
+        ("export_config", True),
+        ("generate_certificate", False),
+        ("get_config", True),
+        ("get_route_list", True),
+        ("get_setting", True),
+        ("get_status", True),
+        ("get_user_list", True),
+        ("remove_route", False),
+        ("remove_user", False),
+        ("set_config", False),
+        ("set_route", False),
+        ("set_setting", False),
+        ("start", False),
+        ("stop", False),
+    ],
+    "parental-control": [
+        ("add_group", False),
+        ("add_rule", False),
+        ("get_app_list", True),
+        ("get_brief", True),
+        ("get_config", True),
+        ("get_status", True),
+        ("remove_group", False),
+        ("remove_rule", False),
+        ("set_brief", False),
+        ("set_config", False),
+        ("set_group", False),
+        ("set_rule", False),
+        ("update", False),
+    ],
+    "plugins": [
+        ("get_config", True),
+        ("get_list", True),
+        ("get_package_info", True),
+        ("get_repository_status", True),
+        ("install_package", False),
+        ("remove_package", False),
+        ("set_config", False),
+        ("update_repository", False),
+    ],
+    "qos": [
+        ("add_device_group", False),
+        ("delete_device_group", False),
+        ("enable_qos", False),
+        ("get_bandwidth_config", True),
+        ("get_channel_bandwidth_ratio", True),
+        ("get_client_list", True),
+        ("get_config", True),
+        ("get_device_group", True),
+        ("modify_device_group", False),
+        ("remove_speed_limit_rule", False),
+        ("set_bandwidth_config", False),
+        ("set_channel_bandwidth_ratio", False),
+        ("set_config", False),
+        ("set_default_priority", False),
+        ("set_model", False),
+        ("set_other_client_priority", False),
+        ("set_packet_priority", False),
+        ("set_speed_limit_rule", False),
+        ("set_work_mode", False),
+    ],
+    "reboot": [
+        ("get_config", True),
+        ("set_config", False),
+    ],
+    "repeater": [
+        ("connect", False),
+        ("disconnect", False),
+        ("get_config", True),
+        ("get_saved_ap_list", True),
+        ("get_status", True),
+        ("remove_saved_ap", False),
+        ("scan", True),
+        ("set_config", False),
+    ],
+    "rs485": [
+        ("debug_mqtt", False),
+        ("debug_socket", False),
+        ("get_config", True),
+        ("get_connect_status", True),
+        ("get_forward_config", True),
+        ("get_forward_log", True),
+        ("get_tcp_clients", True),
+        ("glcould_tool", False),
+        ("read_modbus_data", True),
+        ("set_config", False),
+        ("set_forward_config", False),
+        ("terminal", False),
+        ("write_modbus_data", False),
+    ],
+    "rtty": [
+        ("get_config", True),
+        ("run", False),
+        ("set_config", False),
+        ("stop", False),
+    ],
+    "s2s": [
+        ("enable_echo_server", False),
+        ("generate_wg_genkey", False),
+        ("get_status", True),
+        ("remove_config", False),
+        ("set_config", False),
+        ("start_wg", False),
+        ("stop_wg", False),
+    ],
+    "samba": [
+        ("get_config", True),
+        ("set_config", False),
+    ],
+    "sms-forward": [
+        ("get_config", True),
+        ("set_email", False),
+        ("set_phone_number", False),
+    ],
+    "switch-button": [
+        ("get_config", True),
+        ("get_funcs", True),
+        ("set_config", False),
+    ],
+    "system": [
+        ("add_user", False),
+        ("disk_info", True),
+        ("get_httpd_mem_status", True),
+        ("get_info", True),
+        ("get_load", True),
+        ("get_security_policy", True),
+        ("get_status", True),
+        ("get_timezone_config", True),
+        ("get_unixtime", True),
+        ("reboot", False),
+        ("remove_user", False),
+        ("reset_firmware", False),
+        ("set_password", False),
+        ("set_security_policy", False),
+        ("set_timezone_config", False),
+    ],
+    "tailscale": [
+        ("get_auth_url", True),
+        ("get_config", True),
+        ("get_exit_node_list", True),
+        ("get_status", True),
+        ("logout", False),
+        ("set_config", False),
+    ],
+    "tethering": [
+        ("disconnect", False),
+        ("get_status", True),
+        ("set_connect", False),
+    ],
+    "timer": [
+        ("get_disk", True),
+        ("get_led", True),
+        ("get_reboot", True),
+        ("get_wifi", True),
+        ("set_disk", False),
+        ("set_led", False),
+        ("set_reboot", False),
+        ("set_wifi", False),
+    ],
+    "tor": [
+        ("get_config", True),
+        ("get_status", True),
+        ("set_config", False),
+    ],
+    "ui": [
+        ("check_initialized", True),
+        ("get_lang", True),
+        ("get_menu_list", True),
+        ("init", False),
+        ("load_locales", True),
+        ("set_lang", False),
+    ],
+    "upgrade": [
+        ("check_firmware_local", True),
+        ("check_firmware_online", True),
+        ("get_config", True),
+        ("get_online_upgrade_status", True),
+        ("upgrade_local", False),
+        ("upgrade_online", False),
+        ("set_config", False),
+    ],
+    "vpn-client": [
+        ("get_status", True),
+        ("set_tunnel", False),
+    ],
+    "vpn-policy": [
+        ("get_domain_policy", True),
+        ("get_global_policy", True),
+        ("get_mac_policy", True),
+        ("get_proxy_mode", True),
+        ("get_vlan_policy", True),
+        ("set_domain_policy", False),
+        ("set_global_policy", False),
+        ("set_mac_policy", False),
+        ("set_proxy_mode", False),
+        ("set_vlan_policy", False),
+    ],
+    "wg-client": [
+        ("add_config", False),
+        ("add_group", False),
+        ("add_route", False),
+        ("check_config", True),
+        ("clear_config_list", False),
+        ("confirm_config", False),
+        ("get_all_config_list", True),
+        ("get_config_list", True),
+        ("get_group_list", True),
+        ("get_recommend_config", True),
+        ("get_route_list", True),
+        ("get_setting", True),
+        ("get_status", True),
+        ("get_third_config", True),
+        ("remove_config", False),
+        ("remove_group", False),
+        ("remove_route", False),
+        ("set_config", False),
+        ("set_group", False),
+        ("set_proxy", False),
+        ("set_route", False),
+        ("set_setting", False),
+        ("start", False),
+        ("stop", False),
+    ],
+    "wg-server": [
+        ("add_peer", False),
+        ("add_route", False),
+        ("generate_key", False),
+        ("generate_peer", False),
+        ("generate_publickey", False),
+        ("get_config", True),
+        ("get_peer_list", True),
+        ("get_route_list", True),
+        ("get_setting", True),
+        ("get_status", True),
+        ("remove_peer", False),
+        ("remove_route", False),
+        ("set_config", False),
+        ("set_peer", False),
+        ("set_route", False),
+        ("set_setting", False),
+        ("start", False),
+        ("stop", False),
+    ],
+    "wifi": [
+        ("get_config", True),
+        ("get_status", True),
+        ("set_config", False),
+        ("set_txpower", False),
+    ],
+    "zerotier": [
+        ("get_config", True),
+        ("get_status", True),
+        ("set_config", False),
+    ],
+}
+
+
+# ─── Sensitive keys to redact from output ───
+
+_SENSITIVE_KEYS = frozenset(
+    {
+        "key",
+        "passwd",
+        "password",
+        "sid",
+        "nonce",
+        "salt",
+        "hash",
+        "sn",
+        "sn_bak",
+        "ddns",
+        "login_name",
+        "address_v4",
+        "ip",
+    }
+)
+
+
+def _redact(obj: object) -> object:
+    """Recursively redact sensitive values."""
+    if isinstance(obj, dict):
+        return {
+            k: "***" if k in _SENSITIVE_KEYS else _redact(v) for k, v in obj.items()
+        }
+    if isinstance(obj, list):
+        return [_redact(item) for item in obj]
+    return obj
+
+
+async def enumerate_router(
+    url: str,
+    password: str,
+    *,
+    username: str = "root",
+    read_only: bool = True,
+    verbose: bool = False,
+) -> dict:
+    """Enumerate supported API endpoints on a GL.iNet router.
+
+    Args:
+        url: Router RPC URL (e.g. http://192.168.0.4/rpc)
+        password: Router admin password
+        username: Router admin username (default: root)
+        read_only: If True, only probe read-safe (get_*) endpoints
+        verbose: Print progress to stderr
+
+    Returns:
+        dict with model, firmware, and per-module enumeration results
+    """
+    router = GLinet(base_url=url)
+
+    if verbose:
+        print("Logging in...", file=sys.stderr)
+    await router.login(username, password)
+
+    if verbose:
+        print("Getting router info...", file=sys.stderr)
+    info = await router.router_info()
+
+    report = {
+        "generated_at": datetime.now(tz=timezone.utc).isoformat(),
+        "model": info.get("model", "unknown"),
+        "firmware_version": info.get("firmware_version", "unknown"),
+        "firmware_date": info.get("firmware_date", "unknown"),
+        "board_info": info.get("board_info", {}),
+        "software_feature": info.get("software_feature", {}),
+        "hardware_feature": info.get("hardware_feature", {}),
+        "modules": {},
+    }
+
+    total_modules = len(API_REGISTRY)
+    for i, (module, methods) in enumerate(sorted(API_REGISTRY.items()), 1):
+        if verbose:
+            print(f"[{i}/{total_modules}] Probing {module}...", file=sys.stderr)
+
+        module_result = {
+            "supported": False,
+            "methods": {},
+        }
+
+        for method_name, is_safe in methods:
+            if not is_safe and read_only:
+                module_result["methods"][method_name] = {
+                    "status": "skipped",
+                    "reason": "write method (use --no-read-only to probe)",
+                }
+                continue
+
+            try:
+                payload = router.gen_sid_payload(
+                    "call", [module, method_name], router.sid
+                )
+                result = await router._request(payload)
+                module_result["supported"] = True
+                module_result["methods"][method_name] = {
+                    "status": "ok",
+                    "response": _redact(result),
+                }
+            except Exception as exc:
+                error_msg = str(exc)
+                status = "error"
+
+                if "Method not found" in error_msg or "-32601" in error_msg:
+                    status = "method_not_found"
+                elif "-1" in error_msg and "permission" in error_msg.lower():
+                    status = "permission_denied"
+                elif "-250" in error_msg:
+                    # Module exists but hardware not available (e.g. modem)
+                    module_result["supported"] = True
+                    status = "hardware_not_available"
+
+                module_result["methods"][method_name] = {
+                    "status": status,
+                    "error": error_msg,
+                }
+
+        report["modules"][module] = module_result
+
+    # Summary statistics
+    supported_modules = [m for m, r in report["modules"].items() if r["supported"]]
+    report["summary"] = {
+        "total_modules_probed": total_modules,
+        "supported_modules": len(supported_modules),
+        "supported_module_names": sorted(supported_modules),
+        "total_methods_in_registry": sum(
+            len(methods) for methods in API_REGISTRY.values()
+        ),
+        "methods_probed": sum(
+            1
+            for mod in report["modules"].values()
+            for m in mod["methods"].values()
+            if m["status"] != "skipped"
+        ),
+        "methods_ok": sum(
+            1
+            for mod in report["modules"].values()
+            for m in mod["methods"].values()
+            if m["status"] == "ok"
+        ),
+    }
+
+    return report
+
+
+def main() -> None:
+    """CLI entry point."""
+    parser = argparse.ArgumentParser(
+        description="Enumerate GL.iNet router API endpoints",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Read-only probe (safe, won't change router state):
+  python3 enumeration.py --url http://192.168.0.4/rpc --pwd-file router_pwd
+
+  # Probe all endpoints including write methods (CAUTION):
+  python3 enumeration.py --url http://192.168.0.4/rpc --pwd-file router_pwd --no-read-only
+
+  # Save report to file:
+  python3 enumeration.py --url http://192.168.0.4/rpc --pwd-file router_pwd --output report.json
+
+  # Quiet mode (JSON only, no progress):
+  python3 enumeration.py --url http://192.168.0.4/rpc --pwd-file router_pwd --quiet
+        """,
+    )
+    parser.add_argument(
+        "--url",
+        required=True,
+        help="Router RPC URL (e.g. http://192.168.0.4/rpc)",
+    )
+    parser.add_argument(
+        "--pwd-file",
+        required=True,
+        help="Path to file containing the router password",
+    )
+    parser.add_argument(
+        "--username",
+        default="root",
+        help="Router admin username (default: root)",
+    )
+    parser.add_argument(
+        "--output",
+        "-o",
+        default=None,
+        help="Write JSON report to file (default: stdout)",
+    )
+    parser.add_argument(
+        "--no-read-only",
+        action="store_true",
+        help="Also probe write endpoints (CAUTION: may change router state)",
+    )
+    parser.add_argument(
+        "--quiet",
+        "-q",
+        action="store_true",
+        help="Suppress progress messages (JSON output only)",
+    )
+
+    args = parser.parse_args()
+
+    pwd_path = Path(args.pwd_file)
+    if not pwd_path.exists():
+        print(f"Error: Password file '{args.pwd_file}' not found", file=sys.stderr)
+        sys.exit(1)
+
+    password = pwd_path.read_text(encoding="utf-8").strip()
+
+    report = asyncio.run(
+        enumerate_router(
+            url=args.url,
+            password=password,
+            username=args.username,
+            read_only=not args.no_read_only,
+            verbose=not args.quiet,
+        )
+    )
+
+    output_json = json.dumps(report, indent=2, default=str)
+
+    if args.output:
+        Path(args.output).write_text(output_json, encoding="utf-8")
+        if not args.quiet:
+            print(f"\nReport written to {args.output}", file=sys.stderr)
+            print(f"Model: {report['model']}", file=sys.stderr)
+            print(f"Firmware: {report['firmware_version']}", file=sys.stderr)
+            summary = report["summary"]
+            print(
+                f"Supported modules: {summary['supported_modules']}/{summary['total_modules_probed']}",
+                file=sys.stderr,
+            )
+            print(
+                f"Methods OK: {summary['methods_ok']}/{summary['methods_probed']} probed",
+                file=sys.stderr,
+            )
+    else:
+        print(output_json)
+
+
+if __name__ == "__main__":
+    main()

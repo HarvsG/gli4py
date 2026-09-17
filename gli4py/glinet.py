@@ -533,12 +533,12 @@ class GLinet(Consumer):
             status = (await self._tailscale_status())["status"]
             if status != 3:
                 raise ConnectionError(
-                    f"Did not try to start tailscale as device reported 'Connecting' and then 3 seconds later {TailscaleConnection[status].name}"
+                    f"Did not try to start tailscale as device reported 'Connecting' and then 3 seconds later {TailscaleConnection(status).name}"
                 )
             return True
         if status in [1, 2]:
             raise ConnectionAbortedError(
-                f"Connection not attempted as authorisation is not complete, due to {TailscaleConnection[status].name}"
+                f"Connection not attempted as authorisation is not complete, due to {TailscaleConnection(status).name}"
             )
 
         raise ConnectionError(f"Unknown connection status: {status}")
@@ -561,7 +561,7 @@ class GLinet(Consumer):
             return await self.tailscale_stop(depth)
         if status in [1, 2]:
             raise ConnectionAbortedError(
-                f"Disconnection not attempted as tailscale authorisation is not complete, due to {TailscaleConnection[status].name}. Therefore tailscale was already not connected"
+                f"Disconnection not attempted as tailscale authorisation is not complete, due to {TailscaleConnection(status).name}. Therefore tailscale was already not connected"
             )
 
     @property
