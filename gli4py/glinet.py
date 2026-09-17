@@ -4,7 +4,6 @@ import asyncio
 import hashlib
 from typing import Any
 
-import pydantic
 from passlib.hash import md5_crypt, sha256_crypt, sha512_crypt
 from requests import Response, exceptions
 from semver import Version
@@ -18,8 +17,13 @@ from .error_handling import (  # , timeout_error
     raise_for_status,
 )
 
-# Force Pydantic to resolve its lazy imports to prevent HA event loop blocking
-_ = pydantic.BaseModel
+try:
+    import pydantic
+
+    # Force Pydantic to resolve its lazy imports to prevent HA event loop blocking
+    _ = pydantic.BaseModel
+except ImportError:
+    pass
 
 
 # typical base url http://192.168.8.1/rpc

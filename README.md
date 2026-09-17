@@ -17,10 +17,13 @@ I thought it would be handy to develop a python 3 wrapper for the API for easy i
 4. `poetry config virtualenvs.in-project true` create the venvs in the project folder
 5. `poetry install`
 6. `poetry env activate`
-7. To run tests, ensure there is a file called `router_pwd` in the root directory with the router password in.
-8. Then run `PYTHONDEVMODE="" PYTHONASYNCIODEBUG="" pytest tests` to see responses, assumes the router is at `192.168.0.1`
-9. Set token with `poetry config pypi-token.pypi TOKEN`
-10. publish with `poetry publish --build`
+7. To run unit tests (no router required): `poetry run pytest -m "not live"`
+8. To run hardware tests, ensure there is a file called `router_pwd` in the root directory with the router password in.
+   Then run `PYTHONDEVMODE="" PYTHONASYNCIODEBUG="" poetry run pytest` to see responses, assumes the router is at `192.168.0.1`
+9. Set up pre-commit hooks: `poetry run pre-commit install` (or run manually with `poetry run pre-commit run --all-files`)
+10. Set token with `poetry config pypi-token.pypi TOKEN`
+11. Publish with `poetry publish --build`
+
 
 ## Dev setup alongside HA & the Custom component
 1. Clone the repo into the vscode `/workspaces/` dir
