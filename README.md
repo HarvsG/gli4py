@@ -54,6 +54,7 @@ GL.iNet routers are built on [OpenWrt](https://openwrt.org/), providing extensiv
 
 ```bash
 pip install gli-py
+
 ```
 
 ---
@@ -91,6 +92,7 @@ async def main() -> None:
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 ```
 
 See [examples.md](examples.md) for sample API payloads and responses.
@@ -102,38 +104,52 @@ See [examples.md](examples.md) for sample API payloads and responses.
 ### Local Development
 
 1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/HarvsG/gli4py.git
-   cd gli4py
-   ```
+```bash
+git clone [https://github.com/HarvsG/gli4py.git](https://github.com/HarvsG/gli4py.git)
+cd gli4py
+
+```
+
 
 2. **Ensure Python 3.11+ is installed**:
-   ```bash
-   python3 -V
-   ```
+```bash
+python3 -V
+
+```
+
 
 3. **Install dependencies with Poetry**:
-   ```bash
-   poetry install
-   ```
+```bash
+poetry install
+
+```
+
 
 4. **Install pre-commit hooks**:
-   ```bash
-   poetry run pre-commit install
-   ```
+```bash
+poetry run pre-commit install
+
+```
+
+
 
 ### Running Tests
 
-- **Unit Tests** (no router required, runs in CI):
-  ```bash
-  poetry run pytest -m "not live"
-  ```
+* **Unit Tests** (no router required, runs in CI):
+```bash
+poetry run pytest -m "not live"
 
-- **Hardware Tests** (requires a live GL.iNet router at `192.168.0.1`):
-  Create a file called `router_pwd` in the repository root containing your router password, then run:
-  ```bash
-  PYTHONDEVMODE="" PYTHONASYNCIODEBUG="" poetry run pytest
-  ```
+```
+
+
+* **Hardware Tests** (requires a live GL.iNet router at `192.168.0.1`):
+Create a file called `router_pwd` in the repository root containing your router password, then run:
+```bash
+PYTHONDEVMODE="" PYTHONASYNCIODEBUG="" poetry run pytest
+
+```
+
+
 
 ### Code Formatting & Linting
 
@@ -145,6 +161,7 @@ poetry run pre-commit run --all-files
 poetry run ruff check .
 poetry run ruff format --check .
 poetry run pylint $(git ls-files '*.py')
+
 ```
 
 ---
@@ -155,19 +172,53 @@ To test `gli4py` locally within a Home Assistant development container alongside
 
 1. Clone `gli4py` into your VS Code `/workspaces/` directory alongside `core` and `glinet`.
 2. Inside your Home Assistant virtual environment (`ha-env`), install the editable package:
-   ```bash
-   pip install -e /workspaces/gli4py
-   ```
+```bash
+pip install -e /workspaces/gli4py
+
+```
+
+
 3. Ensure the custom component has `"/workspaces/gli4py/"` in `"python.analysis.extraPaths"` in `.vscode/settings.json`.
+
+---
+
+## API Enumeration
+
+The repository includes `enumeration.py`, a utility script designed to probe a GL.iNet router to discover which API modules and methods are supported by the device's specific firmware. This produces a JSON report detailing the hardware, firmware version, and a complete mapping of successful API endpoints.
+
+### Usage
+
+The script requires the router's RPC URL and a file containing the administrator password. By default, it operates in a safe, read-only mode by skipping methods that modify router state.
+
+**Basic read-only probe:**
+
+```bash
+python3 enumeration.py --url http://192.168.8.1/rpc --pwd-file router_pwd
+
+```
+
+**Probe all endpoints (including write methods):**
+
+> **Caution:** Probing write methods *will* alter the router's configuration or state.
+
+```bash
+python3 enumeration.py --url http://192.168.8.1/rpc --pwd-file router_pwd --no-read-only
+
+```
+
 
 ---
 
 ## Related Projects
 
-- [Home Assistant GL-iNet v4 Integration (`ha-glinet4-integration`)](https://github.com/HarvsG/ha-glinet4-integration) - Custom component integrating GL.iNet firmware 4.x routers into Home Assistant.
+* [Home Assistant GL-iNet v4 Integration (`ha-glinet4-integration`)](https://github.com/HarvsG/ha-glinet4-integration) - Custom component integrating GL.iNet firmware 4.x routers into Home Assistant.
 
 ---
 
 ## License
 
-This project is licensed under the [GNU General Public License v3.0](LICENSE).
+This project is licensed under the [GNU General Public License v3.0](https://www.google.com/search?q=LICENSE).
+
+```
+
+```
