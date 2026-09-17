@@ -123,7 +123,9 @@ class GLinet(Consumer):
                     password
                 )
             else:
-                raise ValueError("Router requested unsupported hashing algorithm for cipher password")
+                raise ValueError(
+                    "Router requested unsupported hashing algorithm for cipher password"
+                )
 
             # Step3: Generate hash values for login
             data = f"{username}:{cipher_password}:{nonce}"
@@ -159,10 +161,12 @@ class GLinet(Consumer):
             raise exceptions.RequestException(e)
         except (KeyError, ValueError) as e:
             raise KeyError("Parameter Exception:") from e
-        except AuthenticationError as e:
-            raise AuthenticationError("Authentication failed during login") from e
+        except AuthenticationError:
+            raise
         except APIClientError as e:
-            raise APIClientError(f"An unexpected error of type {type(e).__name__} has occurred during login") from e
+            raise APIClientError(
+                f"An unexpected error of type {type(e).__name__} has occurred during login"
+            ) from e
 
     async def router_info(self) -> dict:
         """Retrieves information about the router, requires authentication."""
@@ -362,7 +366,7 @@ class GLinet(Consumer):
             for peer in item["peers"]:
                 configs.append(
                     {
-                        "name": f'{item["group_name"]}/{peer["name"]}',
+                        "name": f"{item['group_name']}/{peer['name']}",
                         "group_id": item["group_id"],
                         "peer_id": peer["peer_id"],
                     }
@@ -380,7 +384,11 @@ class GLinet(Consumer):
             await self.router_info()
 
         # If version is 4.8 or greater use vpn-client otherwise use wg-client
-        target_call = "vpn-client" if self._firmware_version >= NEW_VPN_CLIENT_VERSION else "wg-client"
+        target_call = (
+            "vpn-client"
+            if self._firmware_version >= NEW_VPN_CLIENT_VERSION
+            else "wg-client"
+        )
 
         response = await self._request(
             self.gen_sid_payload("call", [target_call, "get_status"], self.sid)
@@ -418,7 +426,7 @@ class GLinet(Consumer):
         if self._firmware_version >= NEW_VPN_CLIENT_VERSION:
             tunnel_id = peer_or_tunnel_id
             return await self._request(
-            self.gen_sid_payload(
+                self.gen_sid_payload(
                     "call",
                     [
                         "vpn-client",
@@ -434,17 +442,17 @@ class GLinet(Consumer):
         peer_id = peer_or_tunnel_id
         if enabled:
             return await self._request(
-                    self.gen_sid_payload(
-                        "call",
-                        ["wg-client", "start", {"group_id": group_id, "peer_id": peer_id}],
-                        self.sid,
-                    )
+                self.gen_sid_payload(
+                    "call",
+                    ["wg-client", "start", {"group_id": group_id, "peer_id": peer_id}],
+                    self.sid,
                 )
+            )
 
         # Not enabled, call the stop method
         return await self._request(
-                self.gen_sid_payload("call", ["wg-client", "stop"], self.sid)
-            )
+            self.gen_sid_payload("call", ["wg-client", "stop"], self.sid)
+        )
 
     async def _tailscale_get_config(self) -> dict | bool:
         """
@@ -521,11 +529,13 @@ class GLinet(Consumer):
             status = (await self._tailscale_status())["status"]
             if status != 3:
                 raise ConnectionError(
-                    f"Did not try to start tailscale as device reported 'Connecting' and then 3 seconds later {TailscaleConnection[status].name}")
+                    f"Did not try to start tailscale as device reported 'Connecting' and then 3 seconds later {TailscaleConnection[status].name}"
+                )
             return True
         if status in [1, 2]:
             raise ConnectionAbortedError(
-                f"Connection not attempted as authorisation is not complete, due to {TailscaleConnection[status].name}")
+                f"Connection not attempted as authorisation is not complete, due to {TailscaleConnection[status].name}"
+            )
 
         raise ConnectionError(f"Unknown connection status: {status}")
 
