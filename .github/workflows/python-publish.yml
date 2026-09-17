@@ -29,8 +29,6 @@ jobs:
       - name: Build release distributions
         run: |
           pip3 install poetry
-          poetry config virtualenvs.in-project true
-          poetry install
           poetry build
 
       - name: Upload distributions

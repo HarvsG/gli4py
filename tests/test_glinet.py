@@ -1,15 +1,20 @@
 """Tests for the GLinet router API using gli4py, must be run against a GLinet router."""
 
 import asyncio
+
 import pytest
 from semver import Version
+
 from gli4py.enums import TailscaleConnection
 from gli4py.error_handling import NonZeroResponse
-from gli4py.glinet import GLinet, NEW_VPN_CLIENT_VERSION
+from gli4py.glinet import NEW_VPN_CLIENT_VERSION, GLinet
 
 # All tests share one GLinet client (and one aiohttp session), so they must
-# run on a single event loop.
-pytestmark = pytest.mark.asyncio(loop_scope="module")
+# run on a single event loop. Tests in this file require a physical router.
+pytestmark = [
+    pytest.mark.asyncio(loop_scope="module"),
+    pytest.mark.live,
+]
 
 router = GLinet(base_url="http://192.168.0.1/rpc")
 PERFORM_DISTRUPTIVE_TESTS = False
@@ -54,7 +59,7 @@ async def test_router_reachable() -> None:
 
 async def test_login() -> None:
     """Test logging into the router."""
-    with open("router_pwd", "r", encoding="utf-8") as file:
+    with open("router_pwd", encoding="utf-8") as file:
         pwd = str(file.read())
     assert not router.logged_in
     await router.login("root", pwd)

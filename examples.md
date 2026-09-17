@@ -45,7 +45,7 @@ This file is used to document the various API calls and typical responses
 }
 ```
 
-tests/test_glinet.py::test_router_info 
+tests/test_glinet.py::test_router_info
 ```json
 {
    "mac":"94:83:C4:00:00:00",
@@ -102,7 +102,7 @@ tests/test_glinet.py::test_router_info
    "firmware_version":"4.3.25"
 }
 ```
-tests/test_glinet.py::test_router_get_status 
+tests/test_glinet.py::test_router_get_status
 ```json
 {
    "network":[
@@ -224,7 +224,7 @@ tests/test_glinet.py::test_router_get_status
 }
 ```
 
-tests/test_glinet.py::test_router_get_load 
+tests/test_glinet.py::test_router_get_load
 ```json
 {
    "memory_free":137641984,
@@ -238,7 +238,7 @@ tests/test_glinet.py::test_router_get_load
 }
 ```
 
-tests/test_glinet.py::test_router_mac 
+tests/test_glinet.py::test_router_mac
 ```json
 {
    "mac":"94:83:C4:00:00:00",
@@ -250,7 +250,7 @@ tests/test_glinet.py::test_router_mac
 }
 ```
 
-tests/test_glinet.py::test_wifi_ifaces_get 
+tests/test_glinet.py::test_wifi_ifaces_get
 ```json
 {
    "default_radio0":{
