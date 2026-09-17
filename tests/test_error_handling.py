@@ -116,4 +116,3 @@ async def test_raise_for_status_unsuccessful_http_status() -> None:
 
     with pytest.raises(UnsuccessfulRequest):
         await raise_for_status(mock_resp)
-
