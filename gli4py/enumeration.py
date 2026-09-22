@@ -33,8 +33,8 @@ from gli4py.helpers import normalize_url
 try:
     from aiohttp import client_proto, http_parser
 
-    client_proto.HttpResponseParser = http_parser.HttpResponseParserPy  # type: ignore[misc]
-    http_parser.SINGLETON_HEADERS = frozenset(  # type: ignore[misc]
+    client_proto.HttpResponseParser = http_parser.HttpResponseParserPy
+    http_parser.SINGLETON_HEADERS = frozenset(
         h for h in http_parser.SINGLETON_HEADERS if h != "content-type"
     )
 except (ImportError, AttributeError):
@@ -620,7 +620,7 @@ def _redact_ip_val(val: object) -> object:
 def _redact(obj: object, deep_redact: bool = True) -> object:
     """Recursively redact sensitive values."""
     if isinstance(obj, dict):
-        res: dict[Any, Any] = {}
+        res = {}
         for k, v in obj.items():
             if deep_redact:
                 if k in ("last_tx", "last_rx"):

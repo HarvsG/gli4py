@@ -2,7 +2,7 @@
 
 import asyncio
 import hashlib
-from typing import Any, Literal
+from typing import Any
 
 from passlib.hash import md5_crypt, sha256_crypt, sha512_crypt
 from requests import Response, exceptions
@@ -39,9 +39,9 @@ class GLinet(Consumer):
         self,
         sid: str | None = None,
         client: AiohttpClient | None = None,
-        **kwargs: Any,
+        **kwargs,
     ):
-        self.sid: str | None = sid
+        self.sid: str = sid
         self._logged_in = self.sid is not None
         client = client or AiohttpClient()
 
@@ -49,7 +49,7 @@ class GLinet(Consumer):
         super().__init__(client=client, **kwargs)
 
     @staticmethod
-    def gen_sid_payload(method: str, params: list, sid: str | None = None) -> dict:
+    def gen_sid_payload(method: str, params: list, sid: str = None) -> dict:
         """Generates a payload for the GL-inet API with a session ID."""
         # headers = {'glinet': 1}
         params.insert(0, sid)
@@ -79,7 +79,6 @@ class GLinet(Consumer):
     @timeout(2)
     async def _request(self, data: Body) -> Response:
         """Base method to make a request to the GL-inet API."""
-        raise NotImplementedError
 
     @response_handler(raise_for_status)
     @json
@@ -87,14 +86,13 @@ class GLinet(Consumer):
     @timeout(5)
     async def _request_long_timeout(self, data: Body) -> Response:
         """Base method to make a request to the GL-inet API with a longer timeout."""
-        raise NotImplementedError
 
-    async def _challenge(self, username: str) -> dict:
+    async def _challenge(self, username) -> dict:
         """Requests a challenge from the GL-inet API to start the login process."""
         challenge_data = self.gen_no_auth_payload("challenge", {"username": username})
         return await self._request(challenge_data)
 
-    async def _get_sid(self, username: str, hsh: str) -> dict:
+    async def _get_sid(self, username: str, hsh) -> dict:
         """Requests a session ID from the GL-inet API using the provided username and hash."""
         login_data = self.gen_no_auth_payload(
             "login", {"username": username, "hash": hsh}
@@ -113,14 +111,7 @@ class GLinet(Consumer):
 
     @staticmethod
     # pylint: disable=too-many-arguments, too-many-positional-arguments
-    def _compute_hash(
-        alg: int,
-        salt: str,
-        nonce: str,
-        hash_method: str,
-        username: str,
-        password: str,
-    ) -> str:
+    def _compute_hash(alg, salt, nonce, hash_method, username, password) -> str:
         """Synchronous helper for CPU-bound hashing."""
         # Step2: Generate cipher text using openssl algorithm
         if alg == 1:  # MD5
@@ -245,7 +236,7 @@ class GLinet(Consumer):
             )
         )
 
-    async def ping(self, address: str = "8.8.8.8") -> bool:
+    async def ping(self, address) -> bool:
         """
         returns the stdout of the ping command if successful or "[]" if not successful
         """
@@ -299,9 +290,7 @@ class GLinet(Consumer):
             self.gen_sid_payload("call", ["wifi", "set_config", config], self.sid)
         )
 
-    async def wifi_ifaces_get(
-        self, redact_keys: bool = True
-    ) -> dict[str, dict[str, Any]]:
+    async def wifi_ifaces_get(self, redact_keys=True) -> dict[str, dict[str, Any]]:
         """returns a dictionary of wifi interfaces.
         If redact_keys, all key values will be set to None
         Example output:
@@ -365,12 +354,12 @@ class GLinet(Consumer):
 
     # VPN information
 
-    async def wireguard_client_list(self) -> list[dict[str, Any]]:
+    async def wireguard_client_list(self) -> list[dict[str, any]]:
         """Gets the list of WireGuard clients."""
         response: dict = await self._request(
             self.gen_sid_payload("call", ["wg-client", "get_all_config_list"], self.sid)
         )
-        configs: list[dict[str, Any]] = []
+        configs: list[dict[str, any]] = []
         for item in response["config_list"]:
             if item["peers"] == []:
                 continue
@@ -393,7 +382,6 @@ class GLinet(Consumer):
         """
         if self._firmware_version is None:
             await self.router_info()
-        assert self._firmware_version is not None
 
         # If version is 4.8 or greater use vpn-client otherwise use wg-client
         target_call = (
@@ -433,7 +421,6 @@ class GLinet(Consumer):
         """Sets the WireGuard client enabled state."""
         if self._firmware_version is None:
             await self.router_info()
-        assert self._firmware_version is not None
 
         # If version is 4.8 or greater use vpn-client otherwise use wg-client
         if self._firmware_version >= NEW_VPN_CLIENT_VERSION:
@@ -521,52 +508,46 @@ class GLinet(Consumer):
             return False
         return True
 
-    async def tailscale_start(self, depth: int = 0) -> Literal[True]:
+    async def tailscale_start(self, depth: int = 0) -> True:
         """Starts Tailscale on the router. Uses recursion to handle connection attempts."""
         if depth > 10:
             raise ConnectionError(
                 "Tailscale attempted to connect 10 times with no success"
             )
         response: dict | list = await self._tailscale_status()
-        if isinstance(response, list):
-            if response == []:
-                await self._tailscale_set_config({"enabled": True})
-                if depth > 0:
-                    await asyncio.sleep(0.3)
-                depth += 1
-                return await self.tailscale_start(depth)
-            raise ConnectionError("Unexpected list response from tailscale status")
+        if isinstance(response, list) and response == []:
+            await self._tailscale_set_config({"enabled": True})
+            if depth > 0:
+                await asyncio.sleep(0.3)
+            depth += 1
+            return await self.tailscale_start(depth)
         status: int = response.get("status", 0)
         if status == 3:
             return True
         if status == 4:
             await asyncio.sleep(3)
-            status_resp = await self._tailscale_status()
-            if isinstance(status_resp, dict):
-                status = status_resp.get("status", 0)
+            status = (await self._tailscale_status())["status"]
             if status != 3:
                 raise ConnectionError(
-                    f"Did not try to start tailscale as device reported 'Connecting' and then 3 seconds later {TailscaleConnection(status).name}"
+                    f"Did not try to start tailscale as device reported 'Connecting' and then 3 seconds later {TailscaleConnection[status].name}"
                 )
             return True
         if status in [1, 2]:
             raise ConnectionAbortedError(
-                f"Connection not attempted as authorisation is not complete, due to {TailscaleConnection(status).name}"
+                f"Connection not attempted as authorisation is not complete, due to {TailscaleConnection[status].name}"
             )
 
         raise ConnectionError(f"Unknown connection status: {status}")
 
-    async def tailscale_stop(self, depth: int = 0) -> Literal[True]:
+    async def tailscale_stop(self, depth: int = 0) -> True:
         """Stops Tailscale on the router. Uses recursion to handle disconnection attempts."""
         if depth > 10:
             raise ConnectionError(
                 "Tailscale attempted to disconnect 10 times with no success"
             )
         response: dict | list = await self._tailscale_status()
-        if isinstance(response, list):
-            if response == []:
-                return True
-            raise ConnectionError("Unexpected list response from tailscale status")
+        if isinstance(response, list) and response == []:
+            return True
         status: int = response.get("status", 0)
         if status in [3, 4]:
             await self._tailscale_set_config({"enabled": False})
@@ -576,9 +557,8 @@ class GLinet(Consumer):
             return await self.tailscale_stop(depth)
         if status in [1, 2]:
             raise ConnectionAbortedError(
-                f"Disconnection not attempted as tailscale authorisation is not complete, due to {TailscaleConnection(status).name}. Therefore tailscale was already not connected"
+                f"Disconnection not attempted as tailscale authorisation is not complete, due to {TailscaleConnection[status].name}. Therefore tailscale was already not connected"
             )
-        raise ConnectionError(f"Unknown connection status: {status}")
 
     @property
     def logged_in(self) -> bool:
