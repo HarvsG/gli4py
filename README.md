@@ -139,7 +139,7 @@ poetry run pytest
 ```
 
 * **Live Hardware Tests** (requires a physical GL.iNet router):
-Run live API tests by passing the `--live` flag, with optional target URL and password arguments:
+Run live API tests by passing the `--live` flag, with target URL and password arguments:
 ```bash
 # Using a password file (router_pwd in root or tests/):
 poetry run pytest --live --url 192.168.8.1
@@ -150,7 +150,7 @@ poetry run pytest --live --url 192.168.8.1 --password your_password
 # Enable disruptive tests (WiFi toggling, VPN toggling, reboot):
 poetry run pytest --live --url 192.168.8.1 --disruptive-tests
 ```
-> **Note**: Router URL and password can also be configured via environment variables (`ROUTER_URL`, `ROUTER_PASSWORD`). In development environments where `PYTHONASYNCIODEBUG` or `PYTHONDEVMODE` is set, prefix with `PYTHONDEVMODE="" PYTHONASYNCIODEBUG=""` if connecting to older router firmware.
+> **Note**: Router URL and password can also be configured via environment variables (`ROUTER_URL`, `ROUTER_PASSWORD`). In most development environments where `PYTHONASYNCIODEBUG` or `PYTHONDEVMODE` is set, prefix with `PYTHONDEVMODE="" PYTHONASYNCIODEBUG=""`.
 
 
 
