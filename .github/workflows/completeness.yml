@@ -1,4 +1,4 @@
-name: Tests
+name: Completeness Check
 
 on:
   push:
@@ -14,13 +14,9 @@ permissions:
   contents: read
 
 jobs:
-  test:
-    name: Test (Python ${{ matrix.python-version }})
+  completeness:
+    name: Completeness Check
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ["3.11", "3.12", "3.13", "3.14"]
     steps:
       - name: Check out the repository
         uses: actions/checkout@v7
@@ -31,17 +27,14 @@ jobs:
             pipx install poetry
           fi
 
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Set up Python 3.13
         uses: actions/setup-python@v7
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: "3.13"
           cache: "poetry"
 
       - name: Install dependencies
         run: poetry install --no-interaction
 
-      - name: Run tests
-        run: poetry run pytest --disruptive-tests --cov=gli4py --cov-report=term-missing --cov-report=xml
-
-      - name: Verify package build
-        run: poetry build --no-interaction
+      - name: Verify documentation and mock completeness
+        run: poetry run python .github/scripts/check_completeness.py
