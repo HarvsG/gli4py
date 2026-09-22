@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# pylint: disable=too-many-lines
 """GL.iNet Router API Enumeration Script.
 
 Probes a GL.iNet router to discover which API modules and methods are
@@ -25,7 +26,7 @@ from typing import Any
 
 from uplink import AiohttpClient
 
-from gli4py.glinet import GLinet
+from gli4py.glinet import GLinet, normalize_url
 
 # ─── Complete API registry from GL.iNet SDK 4.0 API-DOCS.html ───
 # Each module maps to a list of (method, is_safe_to_modify) tuples.
@@ -635,17 +636,6 @@ def _redact(obj: object, deep_redact: bool = True) -> object:
     return obj
 
 
-def normalize_url(url: str) -> str:
-    """Normalize router URL to ensure protocol and /rpc endpoint."""
-    url = url.strip()
-    if not url.startswith(("http://", "https://")):
-        url = f"http://{url}"
-    url = url.rstrip("/")
-    if not url.endswith("/rpc"):
-        url = f"{url}/rpc"
-    return url
-
-
 def _split_args(values: list[str] | None) -> list[str] | None:
     """Split comma-separated CLI argument values into a clean list."""
     if not values:
@@ -659,6 +649,7 @@ def _split_args(values: list[str] | None) -> list[str] | None:
     return result or None
 
 
+# pylint: disable=too-many-nested-blocks
 def filter_registry(
     registry: dict[str, list[tuple[str, bool]]],
     *,
@@ -729,6 +720,7 @@ def filter_registry(
     return targets
 
 
+# pylint: disable=too-many-arguments,too-many-locals,too-many-positional-arguments,protected-access,broad-exception-caught
 async def enumerate_router(
     url: str,
     password: str,
@@ -966,6 +958,7 @@ Examples:
 
     args = parser.parse_args()
 
+    password: str = ""
     if args.password:
         password = args.password
     elif args.pwd_file:

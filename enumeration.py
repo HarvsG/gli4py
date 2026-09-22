@@ -14,7 +14,7 @@ repo_dir = Path(__file__).resolve().parent
 if str(repo_dir) not in sys.path:
     sys.path.insert(0, str(repo_dir))
 
-from gli4py.enumeration import (  # noqa: E402
+from gli4py.enumeration import (  # noqa: E402 # pylint: disable=wrong-import-position
     API_REGISTRY,
     enumerate_router,
     filter_registry,

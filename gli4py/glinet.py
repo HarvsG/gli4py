@@ -44,6 +44,17 @@ AiohttpClient.__del__ = lambda self: None
 NEW_VPN_CLIENT_VERSION = Version(4, 8, 0, 0)
 
 
+def normalize_url(url: str) -> str:
+    """Normalize router URL to ensure scheme and /rpc endpoint."""
+    url = url.strip()
+    if not url.startswith(("http://", "https://")):
+        url = f"http://{url}"
+    url = url.rstrip("/")
+    if not url.endswith("/rpc"):
+        url = f"{url}/rpc"
+    return url
+
+
 class GLinet(Consumer):
     """A Python Client for the GL-inet API."""
 
@@ -60,13 +71,7 @@ class GLinet(Consumer):
         client = client or AiohttpClient()
 
         if "base_url" in kwargs and kwargs["base_url"]:
-            url = kwargs["base_url"].strip()
-            if not url.startswith(("http://", "https://")):
-                url = f"http://{url}"
-            url = url.rstrip("/")
-            if not url.endswith("/rpc"):
-                url = f"{url}/rpc"
-            kwargs["base_url"] = url
+            kwargs["base_url"] = normalize_url(kwargs["base_url"])
 
         # initialise the super class
         super().__init__(client=client, **kwargs)
