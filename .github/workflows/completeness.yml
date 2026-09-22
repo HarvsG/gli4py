@@ -1,0 +1,46 @@
+name: Completeness Check
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  completeness:
+    name: Completeness Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Ensure Poetry is installed
+        run: |
+          if ! command -v poetry &> /dev/null; then
+            pipx install poetry
+          fi
+
+      - name: Set up Python 3.14
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+          cache: "poetry"
+
+      - name: Install dependencies
+        run: poetry install --no-interaction
+
+      - name: Verify documentation and mock completeness
+        run: poetry run python .github/scripts/check_completeness.py
+
+      - name: Verify no public API breaking changes
+        run: poetry run python .github/scripts/check_api_breaking_changes.py
+
