@@ -26,33 +26,8 @@ except ImportError:
     pass
 
 
-try:
-    from aiohttp import client_proto, http_parser
-
-    client_proto.HttpResponseParser = http_parser.HttpResponseParserPy
-    http_parser.SINGLETON_HEADERS = frozenset(
-        h for h in http_parser.SINGLETON_HEADERS if h != "content-type"
-    )
-except (ImportError, AttributeError):
-    pass
-
-# Suppress bug in uplink's AiohttpClient.__del__ during Python shutdown
-AiohttpClient.__del__ = lambda self: None
-
-
 # typical base url http://192.168.8.1/rpc
 NEW_VPN_CLIENT_VERSION = Version(4, 8, 0, 0)
-
-
-def normalize_url(url: str) -> str:
-    """Normalize router URL to ensure scheme and /rpc endpoint."""
-    url = url.strip()
-    if not url.startswith(("http://", "https://")):
-        url = f"http://{url}"
-    url = url.rstrip("/")
-    if not url.endswith("/rpc"):
-        url = f"{url}/rpc"
-    return url
 
 
 class GLinet(Consumer):
@@ -69,9 +44,6 @@ class GLinet(Consumer):
         self.sid: str = sid
         self._logged_in = self.sid is not None
         client = client or AiohttpClient()
-
-        if "base_url" in kwargs and kwargs["base_url"]:
-            kwargs["base_url"] = normalize_url(kwargs["base_url"])
 
         # initialise the super class
         super().__init__(client=client, **kwargs)

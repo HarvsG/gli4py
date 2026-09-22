@@ -10,6 +10,7 @@ from gli4py.enumeration import (
     filter_registry,
     normalize_url,
 )
+from gli4py.helpers import normalize_url as helpers_normalize_url
 
 
 @pytest.mark.parametrize(
@@ -30,6 +31,7 @@ from gli4py.enumeration import (
 def test_normalize_url(input_url: str, expected_url: str) -> None:
     """Test that router URLs are normalized to end with /rpc and have a scheme."""
     assert normalize_url(input_url) == expected_url
+    assert helpers_normalize_url(input_url) == expected_url
 
 
 def test_split_args() -> None:

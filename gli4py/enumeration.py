@@ -26,7 +26,22 @@ from typing import Any
 
 from uplink import AiohttpClient
 
-from gli4py.glinet import GLinet, normalize_url
+from gli4py.glinet import GLinet
+from gli4py.helpers import normalize_url
+
+# Workarounds for older GL.iNet firmware and uplink deallocator during standalone script execution
+try:
+    from aiohttp import client_proto, http_parser
+
+    client_proto.HttpResponseParser = http_parser.HttpResponseParserPy
+    http_parser.SINGLETON_HEADERS = frozenset(
+        h for h in http_parser.SINGLETON_HEADERS if h != "content-type"
+    )
+except (ImportError, AttributeError):
+    pass
+
+# Suppress bug in uplink's AiohttpClient.__del__ during Python shutdown
+AiohttpClient.__del__ = lambda self: None
 
 # ─── Complete API registry from GL.iNet SDK 4.0 API-DOCS.html ───
 # Each module maps to a list of (method, is_safe_to_modify) tuples.
