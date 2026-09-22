@@ -126,13 +126,9 @@ class GLinet(Consumer):
         if alg == 1:  # MD5
             cipher_password = md5_crypt.using(salt=salt).hash(password)
         elif alg == 5:  # SHA-256
-            cipher_password = sha256_crypt.using(  # type: ignore[no-untyped-call]
-                salt=salt, rounds=5000
-            ).hash(password)
+            cipher_password = sha256_crypt.using(salt=salt, rounds=5000).hash(password)
         elif alg == 6:  # SHA-512
-            cipher_password = sha512_crypt.using(  # type: ignore[no-untyped-call]
-                salt=salt, rounds=5000
-            ).hash(password)
+            cipher_password = sha512_crypt.using(salt=salt, rounds=5000).hash(password)
         else:
             raise ValueError(
                 "Router requested unsupported hashing algorithm for cipher password"

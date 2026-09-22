@@ -44,6 +44,7 @@ disallow_untyped_calls = false
 module = "gli4py.glinet"
 disallow_subclassing_any = false
 disallow_untyped_decorators = false
+disallow_untyped_calls = false
 
 [build-system]
 requires = ["poetry-core"]
