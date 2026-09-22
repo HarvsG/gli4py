@@ -25,6 +25,16 @@ pytest-asyncio = ">=0.24.0"
 pytest-cov = ">=5.0.0"
 ruff = ">=0.9.0"
 pre-commit = ">=4.0.0"
+mypy = ">=1.15.0"
+types-passlib = ">=1.7.7"
+
+[tool.mypy]
+python_version = "3.14"
+check_untyped_defs = true
+disallow_incomplete_defs = true
+warn_unused_ignores = true
+ignore_missing_imports = true
+files = ["gli4py"]
 
 [build-system]
 requires = ["poetry-core"]
