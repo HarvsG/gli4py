@@ -48,22 +48,7 @@ These timings are exported as `REAL_WORLD_TIMINGS` in `gli4py.mock`. By default,
 
 ---
 
-## 2. Hardware Differences (GL-MT1300 vs GL-B1300)
-
-Enumeration across physical models (`GL-B1300` vs `GL-MT1300`) revealed model-specific capabilities:
-
-- **Hardware Toggle Switch (`switch-button`)**: Present on GL-MT1300 (`switch-button/get_config`, `switch-button/get_funcs`) supporting modes such as `openvpn` or `wireguard` toggles. Absent on GL-B1300 (returns `-32601 Method not found`).
-- **Tailscale**: Available on GL-MT1300 (`tailscale/get_status`, `tailscale/get_exit_node_list`, `tailscale/set_config`).
-- **VPN Policies (`vpn-policy`)**: Granular policy routing available on GL-MT1300 (`domain_policy`, `global_policy`, `mac_policy`, `vlan_policy`, `proxy_mode`).
-- **Network Leases & ARP (`network`)**: `network/get_dhcp_leases` and `network/get_arp_list` provide real-time ARP and DHCP state.
-- **Firewall Controls (`firewall`)**: `firewall/get_wan_access` manages remote admin access (SSH, HTTPS, ping), while `firewall/get_zone_list` enumerates firewall zone mappings.
-- **LAN Configuration (`lan`)**: `lan/get_config_list` reports IP ranges, subnet masks, and DHCP lease times for LAN and guest interfaces.
-- **Status LED (`led`)**: `led/get_config` toggles router LED status lights.
-- **DDNS (`ddns`)**: `ddns/get_config` and `ddns/get_status` configure and report dynamic DNS status.
-
----
-
-## 3. API Documentation Discrepancies
+## 2. API Documentation Discrepancies
 
 Observed discrepancies between `GL.iNet SDK4.0 API-DOCS.html` and real router responses:
 
@@ -89,7 +74,7 @@ Observed discrepancies between `GL.iNet SDK4.0 API-DOCS.html` and real router re
 
 ---
 
-## 4. Raw API Fixtures Reference
+## 3. Raw API Fixtures Reference
 
 The test suite and mock router maintain 36 sanitized offline fixtures in [`tests/fixtures/`](tests/fixtures/) captured directly from physical GL.iNet routers (`GL-B1300` and `GL-MT1300`).
 
@@ -134,7 +119,7 @@ The test suite and mock router maintain 36 sanitized offline fixtures in [`tests
 
 ---
 
-## 5. `gli4py` Method Output Examples
+## 4. `gli4py` Method Output Examples
 
 The examples below demonstrate the processed Python dictionary / list structures returned by high-level `gli4py` methods. Sensitive values (passwords, MACs, SSIDs) have been sanitized.
 
