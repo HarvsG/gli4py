@@ -182,91 +182,33 @@ pip install -e /workspaces/gli4py
 
 ## API Enumeration
 
-The repository includes an API enumeration utility (`gli-enumerate` or `enumeration.py`) designed to probe a GL.iNet router to discover which API modules and methods are supported by the device's specific firmware. This produces a JSON report detailing the hardware, firmware version, and a complete mapping of successful API endpoints.
+The repository includes `gli-enumerate` (or `python3 enumeration.py`), a utility to probe a GL.iNet router to discover which API modules and methods are supported by the device's firmware and produce a JSON report.
 
-### Installation
+Sensitive information (passwords, Wi-Fi keys, session tokens, serial numbers, and IP/MAC addresses) is automatically redacted from the output. By default, enumeration runs in a safe, read-only mode by skipping methods that alter router configuration or state.
 
-Install `gli-py` via pip:
-
-```bash
-pip install gli-py
-```
-
-Or install from source for local development:
-
-```bash
-git clone https://github.com/HarvsG/gli4py.git
-cd gli4py
-poetry install
-```
-
-### Usage
-
-The utility connects to your router's JSON-RPC endpoint. You can specify the router's IP address or URL (`/rpc` is appended automatically if omitted) and provide the administrator password via the `--password` (`-p`) argument (or interactively or via `--pwd-file`).
-
-By default, enumeration operates in a safe, read-only mode by skipping methods that modify router configuration or state.
+### Examples
 
 **Basic read-only probe:**
 
 ```bash
-# If installed via pip:
-gli-enumerate --url 192.168.8.1 --password your_router_password
-
-# Or using short flags:
 gli-enumerate -u 192.168.8.1 -p your_router_password
-
-# Or from a cloned repository checkout:
-python3 enumeration.py -u 192.168.8.1 -p your_router_password
 ```
 
-**Save report to file:**
+**Target a specific module or endpoint:**
 
 ```bash
-gli-enumerate -u 192.168.8.1 -p your_router_password --output report.json
+gli-enumerate -u 192.168.8.1 -p your_router_password -m wifi
+gli-enumerate -u 192.168.8.1 -p your_router_password -e system.get_info
 ```
 
-**Diagnostic & targeted checks:**
-
-For troubleshooting or diagnosing specific features without probing the full API surface:
+**Share report or subsection via pastebin:**
 
 ```bash
-# Probe only a specific module (e.g. system, wifi, or clients):
-gli-enumerate -u 192.168.8.1 -p your_router_password --module system
-
-# Probe multiple modules:
-gli-enumerate -u 192.168.8.1 -p your_router_password -m system,wifi
-
-# Probe only a specific method across modules:
-gli-enumerate -u 192.168.8.1 -p your_router_password --method get_status
-
-# Probe a single specific endpoint:
-gli-enumerate -u 192.168.8.1 -p your_router_password --endpoint system.get_info
-```
-
-**Alternative password input:**
-
-```bash
-# Using a password file:
-gli-enumerate -u 192.168.8.1 --pwd-file router_pwd
-
-# Interactive prompt (omit password flags in an interactive shell):
-gli-enumerate -u 192.168.8.1
-```
-
-**Sharing reports via pastebin:**
-
-The enumeration output automatically redacts sensitive fields (passwords, Wi-Fi keys, session IDs, serial numbers, and partially masks MAC and IP addresses). You can easily share reports or subsections for troubleshooting by piping into a command-line pastebin such as [paste.rs](https://paste.rs):
-
-```bash
-# Upload full report directly to paste.rs:
+# Upload full report to paste.rs:
 gli-enumerate -u 192.168.8.1 -p your_router_password --quiet | curl --data-binary @- https://paste.rs
 
-# Upload an existing report file:
-curl --data-binary @report.json https://paste.rs
-
-# Upload a specific subsection using jq (e.g. Wi-Fi configuration or summary):
+# Or pipe a specific subsection using jq:
 gli-enumerate -u 192.168.8.1 -p your_router_password --quiet | jq '.modules.wifi' | curl --data-binary @- https://paste.rs
-gli-enumerate -u 192.168.8.1 -p your_router_password --quiet | jq '.summary' | curl --data-binary @- https://paste.rs
 ```
 
 **Probe all endpoints (including write methods):**
@@ -275,6 +217,14 @@ gli-enumerate -u 192.168.8.1 -p your_router_password --quiet | jq '.summary' | c
 
 ```bash
 gli-enumerate -u 192.168.8.1 -p your_router_password --no-read-only
+```
+
+For all available flags and options, run:
+
+```bash
+gli-enumerate --help
+# or from a repository checkout:
+python3 enumeration.py --help
 ```
 
 ---
