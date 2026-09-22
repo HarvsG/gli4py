@@ -74,52 +74,7 @@ Observed discrepancies between `GL.iNet SDK4.0 API-DOCS.html` and real router re
 
 ---
 
-## 3. Raw API Fixtures Reference
-
-The test suite and mock router maintain 36 sanitized offline fixtures in [`tests/fixtures/`](tests/fixtures/) captured directly from physical GL.iNet routers (`GL-B1300` and `GL-MT1300`).
-
-| Endpoint / Method | Fixture File | Corresponding `gli4py` Method | Raw vs. `gli4py` Transformation |
-|:---|:---|:---|:---|
-| `system/get_info` | [`system_info.json`](tests/fixtures/system_info.json) | `router_info()` | Direct passthrough |
-| `system/get_status` | [`system_status.json`](tests/fixtures/system_status.json) | `router_get_status()` | WiFi passwords redacted to `None` |
-| `system/get_load` | [`system_load.json`](tests/fixtures/system_load.json) | `router_get_load()` | Direct passthrough |
-| `macclone/get_mac` | [`macclone.json`](tests/fixtures/macclone.json) | `router_mac()` | Direct passthrough |
-| `clients/get_list` | [`clients.json`](tests/fixtures/clients.json) | `connected_clients()` / `list_all_clients()` | `connected_clients()` filters `online: true` and indexes by MAC; `list_all_clients()` is passthrough |
-| `lan/get_static_bind_list` | [`lan_static.json`](tests/fixtures/lan_static.json) | `list_static_clients()` | Direct passthrough |
-| `wifi/get_config` | [`wifi_config.json`](tests/fixtures/wifi_config.json) | `wifi_ifaces_get()` | Flattened into interface dict keyed by `name`, keys redacted |
-| `cable/get_status` | [`cable_status.json`](tests/fixtures/cable_status.json) | *Underlying API* | Cable WAN link state |
-| `edgerouter/get_status` | [`edgerouter.json`](tests/fixtures/edgerouter.json) | `connected_to_internet()` | Direct passthrough |
-| `wg-client/get_all_config_list` | [`wireguard_config.json`](tests/fixtures/wireguard_config.json) | `wireguard_client_list()` | Extracts peers into `{name: "group/peer", group_id, peer_id}` |
-| `wg-client/get_status` | [`wireguard_status.json`](tests/fixtures/wireguard_status.json) | `wireguard_client_state()` | Wrapped in a list on fw < 4.8 to match fw >= 4.8 |
-| `vpn-client/get_status` | [`vpn_client_status.json`](tests/fixtures/vpn_client_status.json) | `wireguard_client_state()` | Extracts `status_list` on fw >= 4.8 |
-| `tailscale/get_config` | [`tailscale_config.json`](tests/fixtures/tailscale_config.json) | *Underlying API* | Tailscale client configuration |
-| `tailscale/get_status` | [`tailscale_status.json`](tests/fixtures/tailscale_status.json) | *Underlying API* | Tailscale connection status |
-| `tailscale/get_exit_node_list` | [`tailscale_exit_nodes.json`](tests/fixtures/tailscale_exit_nodes.json) | *Underlying API* | Exit node IP list |
-| `switch-button/get_config`, `get_funcs` | [`switch_button.json`](tests/fixtures/switch_button.json) | *Underlying API* | Physical toggle switch configuration & supported functions |
-| `vpn-policy/*` | [`vpn_policy.json`](tests/fixtures/vpn_policy.json) | *Underlying API* | Domain, MAC, VLAN, global policies & proxy mode |
-| `network/get_dhcp_leases` | [`dhcp_leases.json`](tests/fixtures/dhcp_leases.json) | *Underlying API* | Active DHCP leases |
-| `network/get_arp_list` | [`arp_list.json`](tests/fixtures/arp_list.json) | *Underlying API* | Kernel ARP table entries |
-| `firewall/get_wan_access` | [`firewall_wan_access.json`](tests/fixtures/firewall_wan_access.json) | *Underlying API* | Remote WAN management settings (SSH/HTTPS/ping) |
-| `firewall/get_zone_list` | [`firewall_zones.json`](tests/fixtures/firewall_zones.json) | *Underlying API* | Internal and external zone interfaces |
-| `lan/get_config_list` | [`lan_config.json`](tests/fixtures/lan_config.json) | *Underlying API* | LAN and guest subnet/DHCP IP ranges |
-| `led/get_config` | [`led_config.json`](tests/fixtures/led_config.json) | *Underlying API* | LED status light configuration |
-| `ddns/get_config` | [`ddns_config.json`](tests/fixtures/ddns_config.json) | *Underlying API* | Dynamic DNS client configuration |
-| `ddns/get_status` | [`ddns_status.json`](tests/fixtures/ddns_status.json) | *Underlying API* | DDNS WAN IP resolution status |
-| `repeater/get_config` | [`repeater_config.json`](tests/fixtures/repeater_config.json) | *Underlying API* | Repeater auto/antijam/dfs configuration |
-| `repeater/get_status` | [`repeater_status.json`](tests/fixtures/repeater_status.json) | *Underlying API* | Repeater connection status |
-| `repeater/scan` | [`repeater_scan.json`](tests/fixtures/repeater_scan.json) | *Underlying API* | Scanned nearby SSIDs and signal strengths |
-| `ovpn-client/get_config` | [`ovpn_config.json`](tests/fixtures/ovpn_config.json) | *Underlying API* | OpenVPN client configurations |
-| `ovpn-client/get_status` | [`ovpn_status.json`](tests/fixtures/ovpn_status.json) | *Underlying API* | OpenVPN client status |
-| `dns/get_config` | [`dns_config.json`](tests/fixtures/dns_config.json) | *Underlying API* | Upstream DNS configuration |
-| `tethering/get_status` | [`tethering_status.json`](tests/fixtures/tethering_status.json) | *Underlying API* | USB / mobile tethering status |
-| `modem/get_modem_info` | [`modem_info.json`](tests/fixtures/modem_info.json) | `modem_info()` | Direct passthrough |
-| `modem/get_sim_info` | [`modem_sim.json`](tests/fixtures/modem_sim.json) | `modem_sim_info()` | Direct passthrough |
-| `modem/get_sim_signal` | [`modem_sim_signal.json`](tests/fixtures/modem_sim_signal.json) | `modem_sim_signal()` | Direct passthrough |
-| `adguardhome/get_config` | [`adguardhome.json`](tests/fixtures/adguardhome.json) | *Underlying API* | AdGuard Home configuration |
-
----
-
-## 4. `gli4py` Method Output Examples
+## 3. `gli4py` Method Output Examples
 
 The examples below demonstrate the processed Python dictionary / list structures returned by high-level `gli4py` methods. Sensitive values (passwords, MACs, SSIDs) have been sanitized.
 
