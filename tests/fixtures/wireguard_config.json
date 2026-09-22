@@ -1,15 +1,39 @@
 {
   "config_list": [
     {
-      "group_id": 1001,
-      "group_name": "MockWGGroup",
+      "auth_type": 1,
+      "group_id": 8954,
+      "group_name": "AzireVPN",
+      "password": "",
+      "peers": [],
+      "username": ""
+    },
+    {
+      "auth_type": 1,
+      "group_id": 8272,
+      "group_name": "Mullvad",
+      "password": "",
+      "peers": [],
+      "username": ""
+    },
+    {
+      "auth_type": 0,
+      "group_id": 7707,
+      "group_name": "MockVPN",
+      "password": "",
       "peers": [
         {
           "address_v4": "10.0.0.2",
-          "name": "Peer1",
+          "name": "MockTunnel",
           "peer_id": 2001
+        },
+        {
+          "address_v4": "10.0.0.3",
+          "name": "MockSplitTunnel",
+          "peer_id": 2002
         }
-      ]
+      ],
+      "username": ""
     }
   ]
 }

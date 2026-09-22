@@ -93,6 +93,7 @@ class MockRouter:
         self.macclone = self._loader.load("macclone")
         self.clients = self._loader.load("clients")
         self.lan_static = self._loader.load("lan_static")
+        self.lan_config = self._loader.load("lan_config")
         self.wifi_config = self._loader.load("wifi_config")
         self.edgerouter = self._loader.load("edgerouter")
         self.wireguard_config = self._loader.load("wireguard_config")
@@ -100,17 +101,28 @@ class MockRouter:
         self.vpn_client_status = self._loader.load("vpn_client_status")
         self.tailscale_config = self._loader.load("tailscale_config")
         self.tailscale_status = self._loader.load("tailscale_status")
+        self.tailscale_exit_nodes = self._loader.load("tailscale_exit_nodes")
         self.modem_info = self._loader.load("modem_info")
         self.modem_sim = self._loader.load("modem_sim")
         self.modem_sim_signal = self._loader.load("modem_sim_signal")
         self.ovpn_config = self._loader.load("ovpn_config")
         self.ovpn_status = self._loader.load("ovpn_status")
+        self.repeater_config = self._loader.load("repeater_config")
         self.repeater_status = self._loader.load("repeater_status")
         self.repeater_scan = self._loader.load("repeater_scan")
         self.cable_status = self._loader.load("cable_status")
         self.dns_config = self._loader.load("dns_config")
         self.tethering_status = self._loader.load("tethering_status")
         self.adguardhome = self._loader.load("adguardhome")
+        self.switch_button = self._loader.load("switch_button")
+        self.vpn_policy = self._loader.load("vpn_policy")
+        self.dhcp_leases = self._loader.load("dhcp_leases")
+        self.arp_list = self._loader.load("arp_list")
+        self.firewall_wan_access = self._loader.load("firewall_wan_access")
+        self.firewall_zones = self._loader.load("firewall_zones")
+        self.led_config = self._loader.load("led_config")
+        self.ddns_config = self._loader.load("ddns_config")
+        self.ddns_status = self._loader.load("ddns_status")
         self._initial_tailscale_status = copy.deepcopy(self.tailscale_status)
 
     async def start(self) -> "MockRouter":
@@ -355,7 +367,11 @@ class MockRouter:
         if module == "clients":
             return self.clients if func == "get_list" else None
         if module == "lan":
-            return self.lan_static if func == "get_static_bind_list" else None
+            if func == "get_static_bind_list":
+                return copy.deepcopy(self.lan_static)
+            if func == "get_config_list":
+                return copy.deepcopy(self.lan_config)
+            return None
         if module == "edgerouter":
             return self.edgerouter if func == "get_status" else None
         if module == "diag":
@@ -380,6 +396,34 @@ class MockRouter:
             return self.tethering_status if func == "get_status" else None
         if module == "adguardhome":
             return self.adguardhome if func in ("get_config", "get_status") else None
+        if module == "switch-button":
+            if func == "get_config":
+                return {"func": self.switch_button.get("func", "none")}
+            if func == "get_funcs":
+                return {"funcs": copy.deepcopy(self.switch_button.get("funcs", []))}
+            return None
+        if module == "vpn-policy":
+            return self._dispatch_vpn_policy(func)
+        if module == "network":
+            if func == "get_dhcp_leases":
+                return copy.deepcopy(self.dhcp_leases)
+            if func == "get_arp_list":
+                return copy.deepcopy(self.arp_list)
+            return None
+        if module == "firewall":
+            if func == "get_wan_access":
+                return copy.deepcopy(self.firewall_wan_access)
+            if func == "get_zone_list":
+                return copy.deepcopy(self.firewall_zones)
+            return None
+        if module == "led":
+            return copy.deepcopy(self.led_config) if func == "get_config" else None
+        if module == "ddns":
+            if func == "get_config":
+                return copy.deepcopy(self.ddns_config)
+            if func == "get_status":
+                return copy.deepcopy(self.ddns_status)
+            return None
         return None
 
     def _dispatch_system(self, func: str, opt_args: Any) -> Any:
@@ -493,6 +537,10 @@ class MockRouter:
             return {}
         if func == "get_status":
             return copy.deepcopy(self.tailscale_status)
+        if func == "get_exit_node_list":
+            return copy.deepcopy(self.tailscale_exit_nodes)
+        if func == "get_auth_url":
+            return []
         return None
 
     def _dispatch_modem(self, func: str) -> Any:
@@ -519,6 +567,8 @@ class MockRouter:
             return copy.deepcopy(self.repeater_status)
         if func == "scan":
             return copy.deepcopy(self.repeater_scan)
+        if func == "get_config":
+            return copy.deepcopy(self.repeater_config)
         return None
 
     def _dispatch_cable(self, func: str) -> Any:
@@ -527,6 +577,20 @@ class MockRouter:
             return copy.deepcopy(self.cable_status)
         if func == "get_config":
             return {"protocol": "dhcp"}
+        return None
+
+    def _dispatch_vpn_policy(self, func: str) -> Any:
+        """Handle vpn-policy calls."""
+        if func == "get_domain_policy":
+            return copy.deepcopy(self.vpn_policy.get("domain_policy"))
+        if func == "get_global_policy":
+            return copy.deepcopy(self.vpn_policy.get("global_policy"))
+        if func == "get_mac_policy":
+            return copy.deepcopy(self.vpn_policy.get("mac_policy"))
+        if func == "get_proxy_mode":
+            return copy.deepcopy(self.vpn_policy.get("proxy_mode"))
+        if func == "get_vlan_policy":
+            return copy.deepcopy(self.vpn_policy.get("vlan_policy"))
         return None
 
 

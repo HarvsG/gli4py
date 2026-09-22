@@ -1,5 +1,5 @@
 """Tests for the GL.iNet mock router server and edge case simulations."""
-# pylint: disable=redefined-outer-name,protected-access,too-many-locals
+# pylint: disable=redefined-outer-name,protected-access,too-many-locals,too-many-statements
 
 import asyncio
 
@@ -319,6 +319,88 @@ async def test_additional_endpoints_coverage() -> None:
                 )
             )
             assert adguard_config["enabled"] is True
+
+            # Switch button endpoints
+            switch_cfg = await client._request(
+                client.gen_sid_payload(
+                    "call", ["switch-button", "get_config"], client.sid
+                )
+            )
+            assert "func" in switch_cfg
+
+            switch_funcs = await client._request(
+                client.gen_sid_payload(
+                    "call", ["switch-button", "get_funcs"], client.sid
+                )
+            )
+            assert "openvpn" in switch_funcs["funcs"]
+
+            # Tailscale exit nodes
+            exit_nodes = await client._request(
+                client.gen_sid_payload(
+                    "call", ["tailscale", "get_exit_node_list"], client.sid
+                )
+            )
+            assert len(exit_nodes["exit_node_list"]) > 0
+
+            # LAN config list
+            lan_cfg = await client._request(
+                client.gen_sid_payload("call", ["lan", "get_config_list"], client.sid)
+            )
+            assert len(lan_cfg["interfaces"]) > 0
+
+            # VPN policy
+            vpn_dom = await client._request(
+                client.gen_sid_payload(
+                    "call", ["vpn-policy", "get_domain_policy"], client.sid
+                )
+            )
+            assert "domain_list" in vpn_dom
+
+            # Network leases & ARP
+            leases = await client._request(
+                client.gen_sid_payload(
+                    "call", ["network", "get_dhcp_leases"], client.sid
+                )
+            )
+            assert len(leases["leases"]) > 0
+
+            arp = await client._request(
+                client.gen_sid_payload("call", ["network", "get_arp_list"], client.sid)
+            )
+            assert len(arp["entries"]) > 0
+
+            # Firewall WAN access & zones
+            wan_acc = await client._request(
+                client.gen_sid_payload(
+                    "call", ["firewall", "get_wan_access"], client.sid
+                )
+            )
+            assert "enable_ssh" in wan_acc
+
+            zones = await client._request(
+                client.gen_sid_payload(
+                    "call", ["firewall", "get_zone_list"], client.sid
+                )
+            )
+            assert "lan" in zones["internals"]
+
+            # LED config
+            led = await client._request(
+                client.gen_sid_payload("call", ["led", "get_config"], client.sid)
+            )
+            assert "led_enable" in led
+
+            # DDNS config & status
+            ddns_cfg = await client._request(
+                client.gen_sid_payload("call", ["ddns", "get_config"], client.sid)
+            )
+            assert "device_id" in ddns_cfg
+
+            ddns_st = await client._request(
+                client.gen_sid_payload("call", ["ddns", "get_status"], client.sid)
+            )
+            assert ddns_st["status"] == 2
 
             # Unknown method returns -32601
             with pytest.raises(NonZeroResponse) as exc_info:

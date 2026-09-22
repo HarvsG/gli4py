@@ -359,3 +359,17 @@ Observed discrepancies between `GL.iNet SDK4.0 API-DOCS.html` and real router re
    - Firmware < 4.8.0: WireGuard client state is queried via `wg-client/get_status`, returning a single dictionary object.
    - Firmware >= 4.8.0: Replaced by unified `vpn-client/get_status`, which returns a `status_list` array allowing multiple concurrent tunnels.
 
+## Hardware Differences (GL-MT1300 vs GL-B1300)
+
+Enumeration across physical models (`GL-B1300` vs `GL-MT1300`) revealed model-specific capabilities:
+
+- **Hardware Toggle Switch (`switch-button`)**: Present on GL-MT1300 (`switch-button/get_config`, `switch-button/get_funcs`) supporting modes such as `openvpn` or `wireguard` toggles. Absent on GL-B1300 (returns `-32601 Method not found`).
+- **Tailscale**: Available on GL-MT1300 (`tailscale/get_status`, `tailscale/get_exit_node_list`, `tailscale/set_config`).
+- **VPN Policies (`vpn-policy`)**: Granular policy routing available on GL-MT1300 (`domain_policy`, `global_policy`, `mac_policy`, `vlan_policy`, `proxy_mode`).
+- **Network Leases & ARP (`network`)**: `network/get_dhcp_leases` and `network/get_arp_list` provide real-time ARP and DHCP state.
+- **Firewall Controls (`firewall`)**: `firewall/get_wan_access` manages remote admin access (SSH, HTTPS, ping), while `firewall/get_zone_list` enumerates firewall zone mappings.
+- **LAN Configuration (`lan`)**: `lan/get_config_list` reports IP ranges, subnet masks, and DHCP lease times for LAN and guest interfaces.
+- **Status LED (`led`)**: `led/get_config` toggles router LED status lights.
+- **DDNS (`ddns`)**: `ddns/get_config` and `ddns/get_status` configure and report dynamic DNS status.
+
+

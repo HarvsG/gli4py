@@ -1,0 +1,31 @@
+{
+  "domain_policy": {
+    "default_policy": 0,
+    "domain_list": "10.10.0.0/24"
+  },
+  "global_policy": {
+    "kill_switch": 0,
+    "service_policy": 0,
+    "vpn_server_policy": 1,
+    "wan_access": 1
+  },
+  "mac_policy": {
+    "default_policy": 1,
+    "mac_list": []
+  },
+  "proxy_mode": {
+    "mode": 0
+  },
+  "vlan_policy": {
+    "vlans": [
+      {
+        "id": 1,
+        "vpn": 1
+      },
+      {
+        "id": 2,
+        "vpn": 1
+      }
+    ]
+  }
+}

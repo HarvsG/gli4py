@@ -1,0 +1,6 @@
+{
+  "device_id": "mockddns",
+  "enable_http_access": false,
+  "enable_https_access": false,
+  "enable_ssh_access": false
+}
