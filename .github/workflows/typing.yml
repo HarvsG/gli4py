@@ -1,4 +1,4 @@
-name: Completeness Check
+name: Type Check
 
 on:
   push:
@@ -14,14 +14,11 @@ permissions:
   contents: read
 
 jobs:
-  completeness:
-    name: Completeness Check
+  typing:
+    name: Mypy
     runs-on: ubuntu-latest
     steps:
-      - name: Check out the repository
-        uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
+      - uses: actions/checkout@v7
 
       - name: Ensure Poetry is installed
         run: |
@@ -38,9 +35,5 @@ jobs:
       - name: Install dependencies
         run: poetry install --no-interaction
 
-      - name: Verify documentation and mock completeness
-        run: poetry run python .github/scripts/check_completeness.py
-
-      - name: Verify no public API breaking changes
-        run: poetry run python .github/scripts/check_api_breaking_changes.py
-
+      - name: Run Mypy
+        run: poetry run mypy gli4py

@@ -5,13 +5,13 @@
 ## Related Issues & Pull Requests
 
 <!-- Optional: Link to a relevant issue or pull request in https://github.com/HarvsG/ha-glinet4-integration -->
-- Relevant integration PR: 
+- Relevant integration PR:
 
 ## Live Hardware Testing (Optional)
 
 <!-- If tested against a physical GL.iNet router, specify the device details below: -->
-- Router Model: 
-- Firmware Version: 
+- Router Model:
+- Firmware Version:
 
 ## Checklist
 

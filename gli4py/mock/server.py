@@ -133,8 +133,10 @@ class MockRouter:
         await self._site.start()
 
         # Retrieve bound port from underlying socket
-        server_sockets = self._site._server.sockets  # pylint: disable=protected-access
-        self.actual_port = server_sockets[0].getsockname()[1]
+        assert self._site._server is not None  # pylint: disable=protected-access
+        server_sockets = getattr(self._site._server, "sockets", [])  # pylint: disable=protected-access
+        if server_sockets:
+            self.actual_port = server_sockets[0].getsockname()[1]
         self.url = f"http://{self.host}:{self.actual_port}/rpc"
         return self
 
