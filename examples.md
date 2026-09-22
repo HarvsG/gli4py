@@ -5,7 +5,7 @@ This document serves as a reference for the low-level GL.iNet JSON-RPC 2.0 API a
 > [!IMPORTANT]
 > **gli4py Method Outputs vs. Raw API Fixtures**
 >
-> The examples in the [gli4py Method Output Examples](#5-gli4py-method-output-examples) section represent the **processed Python return values from `gli4py` methods** (e.g., `await router.connected_clients()`, `await router.wifi_ifaces_get()`).
+> The examples in the [gli4py Method Output Examples](#3-gli4py-method-output-examples) section represent the **processed Python return values from `gli4py` methods** (e.g., `await router.connected_clients()`, `await router.wifi_ifaces_get()`).
 >
 > Depending on the method, `gli4py` performs varying degrees of client-side processing:
 > - **Indexing & Filtering**: `connected_clients()` filters online clients and indexes them by MAC address as a dictionary (`{mac: client_info}`); `wifi_ifaces_get()` extracts interfaces across all radio devices and indexes them by interface name.
@@ -13,7 +13,7 @@ This document serves as a reference for the low-level GL.iNet JSON-RPC 2.0 API a
 > - **Schema Normalization**: `wireguard_client_state()` wraps legacy single-object responses from firmware <4.8 into a list to match the modern firmware >=4.8 `status_list` structure.
 > - **Direct Passthrough**: Methods like `router_info()`, `router_get_load()`, and `router_mac()` return the router's JSON-RPC dictionary payload directly without alteration.
 >
-> For the **exact, unadulterated raw JSON-RPC response payloads** returned directly by GL.iNet router firmware across all endpoints, refer to the [Raw API Fixtures Reference](#4-raw-api-fixtures-reference) below and the JSON files in [`tests/fixtures/`](tests/fixtures/).
+> For the **exact, unadulterated raw JSON-RPC response payloads** returned directly by GL.iNet router firmware across all endpoints, refer to the offline JSON fixtures in [`tests/fixtures/`](tests/fixtures/).
 
 ---
 
@@ -78,56 +78,56 @@ Observed discrepancies between `GL.iNet SDK4.0 API-DOCS.html` and real router re
 
 The examples below demonstrate the processed Python dictionary / list structures returned by high-level `gli4py` methods. Sensitive values (passwords, MACs, SSIDs) have been sanitized.
 
-### `connected_clients()`
-Invocation: `await router.connected_clients()` (tested in `tests/test_api.py::test_connected_clients`)
+### 3.1 Authentication & Connectivity
 
-Returns online clients filtered from `clients/get_list` and indexed by MAC address:
+#### `router_reachable()`
+Invocation: `await router.router_reachable()` (tested in `tests/test_api.py::test_router_reachable`)
+
+Returns `bool` indicating whether the router responds to challenge probes without requiring authentication:
+```python
+True
+```
+
+#### `login()`
+Invocation: `await router.login("root", "goodlife")` (tested in `tests/test_api.py::test_login`)
+
+Performs challenge-response authentication and returns the session ID (`str`):
+```python
+"c4b8e1f0a2d3e4b5c6d7e8f9a0b1c2d3"
+```
+
+#### `connected_to_internet()`
+Invocation: `await router.connected_to_internet()` (tested in `tests/test_api.py::test_connected_to_internet`)
+
+Checks upper-level DHCP / bypass router status (`edgerouter/get_status`):
 ```json
 {
-   "e6:bb:ea:4b:11:f7":{
-      "remote":true,
-      "mac":"e6:bb:ea:4b:11:f7",
-      "ip":"192.168.0.230",
-      "up":"0",
-      "down":"0",
-      "total_up":"0",
-      "total_down":"0",
-      "qos_up":"0",
-      "qos_down":"0",
-      "blocked":false,
-      "iface":"cable",
-      "name":"pop-os",
-      "online_time":"1623744560",
-      "alive":"2793277",
-      "new_online":false,
-      "online":true,
-      "vendor":"Liteon Technology Corporation",
-      "node":"0"
-   },
-   "11:f6:43:48:ae:04":{
-      "remote":false,
-      "mac":"11:f6:43:48:ae:04",
-      "ip":"192.168.0.167",
-      "up":"0",
-      "down":"0",
-      "total_up":"0",
-      "total_down":"0",
-      "qos_up":"0",
-      "qos_down":"0",
-      "blocked":false,
-      "iface":"cable",
-      "name":"Google-Home-Mini",
-      "online_time":"1623774267",
-      "alive":"2763570",
-      "new_online":false,
-      "online":true,
-      "vendor":"Google, Inc.",
-      "node":"0"
-   }
+   "detected": 2,
+   "dns": [
+      "8.8.8.8",
+      "1.1.1.1"
+   ],
+   "gateway": "192.168.1.1",
+   "ip": "192.168.1.150",
+   "netmask": "255.255.255.0",
+   "valid": true
 }
 ```
 
-### `router_info()`
+#### `ping()`
+Invocation: `await router.ping("8.8.8.8")` (tested in `tests/test_api.py::test_ping`)
+
+Returns `bool` indicating whether the ICMP echo ping probe succeeded:
+```python
+True   # Host is reachable
+False  # Host is unreachable or timed out
+```
+
+---
+
+### 3.2 System & Hardware
+
+#### `router_info()`
 Invocation: `await router.router_info()` (tested in `tests/test_api.py::test_router_info`)
 
 Direct passthrough of `system/get_info`:
@@ -188,7 +188,7 @@ Direct passthrough of `system/get_info`:
 }
 ```
 
-### `router_get_status()`
+#### `router_get_status()`
 Invocation: `await router.router_get_status()` (tested in `tests/test_api.py::test_router_get_status`)
 
 Retrieves `system/get_status` with Wi-Fi passwords redacted to `None`:
@@ -313,7 +313,7 @@ Retrieves `system/get_status` with Wi-Fi passwords redacted to `None`:
 }
 ```
 
-### `router_get_load()`
+#### `router_get_load()`
 Invocation: `await router.router_get_load()` (tested in `tests/test_api.py::test_router_get_load`)
 
 Direct passthrough of `system/get_load`:
@@ -330,7 +330,7 @@ Direct passthrough of `system/get_load`:
 }
 ```
 
-### `router_mac()`
+#### `router_mac()`
 Invocation: `await router.router_mac()` (tested in `tests/test_api.py::test_router_mac`)
 
 Direct passthrough of `macclone/get_mac`:
@@ -345,7 +345,192 @@ Direct passthrough of `macclone/get_mac`:
 }
 ```
 
-### `wifi_ifaces_get()`
+#### `router_reboot()`
+Invocation: `await router.router_reboot(delay=0)` (tested in `tests/test_api.py::test_router_reboot`)
+
+Triggers a system restart (`system/reboot`):
+```json
+{}
+```
+
+---
+
+### 3.3 Clients & Static Bindings
+
+#### `connected_clients()`
+Invocation: `await router.connected_clients()` (tested in `tests/test_api.py::test_connected_clients`)
+
+Returns online clients filtered from `clients/get_list` and indexed by MAC address:
+```json
+{
+   "e6:bb:ea:4b:11:f7":{
+      "remote":true,
+      "mac":"e6:bb:ea:4b:11:f7",
+      "ip":"192.168.0.230",
+      "up":"0",
+      "down":"0",
+      "total_up":"0",
+      "total_down":"0",
+      "qos_up":"0",
+      "qos_down":"0",
+      "blocked":false,
+      "iface":"cable",
+      "name":"pop-os",
+      "online_time":"1623744560",
+      "alive":"2793277",
+      "new_online":false,
+      "online":true,
+      "vendor":"Liteon Technology Corporation",
+      "node":"0"
+   },
+   "11:f6:43:48:ae:04":{
+      "remote":false,
+      "mac":"11:f6:43:48:ae:04",
+      "ip":"192.168.0.167",
+      "up":"0",
+      "down":"0",
+      "total_up":"0",
+      "total_down":"0",
+      "qos_up":"0",
+      "qos_down":"0",
+      "blocked":false,
+      "iface":"cable",
+      "name":"Google-Home-Mini",
+      "online_time":"1623774267",
+      "alive":"2763570",
+      "new_online":false,
+      "online":true,
+      "vendor":"Google, Inc.",
+      "node":"0"
+   }
+}
+```
+
+#### `list_all_clients()`
+Invocation: `await router.list_all_clients()` (tested in `tests/test_api.py::test_clients`)
+
+Unfiltered list of all clients (online and offline) from `clients/get_list`:
+```json
+{
+   "clients": [
+      {
+         "mac": "00:11:22:33:44:01",
+         "ip": "192.168.8.101",
+         "name": "MockPhone",
+         "online": true,
+         "iface": "wifi2g",
+         "vendor": "MockVendor Technologies",
+         "online_time": "1623744560",
+         "alive": "86400",
+         "new_online": false,
+         "blocked": false,
+         "qos_up": "0",
+         "qos_down": "0",
+         "up": "1024",
+         "down": "2048",
+         "total_up": "1048576",
+         "total_down": "2097152",
+         "total_tx_init": 1048576,
+         "total_rx_init": 2097152,
+         "limit_tx": 0,
+         "limit_rx": 0,
+         "last_rx": ["1024"],
+         "last_tx": ["512"],
+         "node": "0",
+         "remote": false
+      },
+      {
+         "mac": "00:11:22:33:44:02",
+         "ip": "192.168.8.102",
+         "name": "MockLaptop",
+         "online": true,
+         "iface": "cable",
+         "vendor": "MockLaptop Inc",
+         "online_time": "1623754560",
+         "alive": "76400",
+         "new_online": false,
+         "blocked": false,
+         "qos_up": "0",
+         "qos_down": "0",
+         "up": "4096",
+         "down": "8192",
+         "total_up": "10485760",
+         "total_down": "20971520",
+         "total_tx_init": 10485760,
+         "total_rx_init": 20971520,
+         "limit_tx": 0,
+         "limit_rx": 0,
+         "last_rx": ["4096"],
+         "last_tx": ["2048"],
+         "node": "0",
+         "remote": false
+      },
+      {
+         "mac": "00:11:22:33:44:03",
+         "ip": "192.168.8.103",
+         "name": "MockOfflineDevice",
+         "online": false,
+         "iface": "wifi5g",
+         "vendor": "MockVendor Corp",
+         "online_time": "1623700000",
+         "alive": "0",
+         "new_online": false,
+         "blocked": false,
+         "qos_up": "0",
+         "qos_down": "0",
+         "up": "0",
+         "down": "0",
+         "total_up": "512000",
+         "total_down": "1024000",
+         "total_tx_init": 512000,
+         "total_rx_init": 1024000,
+         "limit_tx": 0,
+         "limit_rx": 0,
+         "last_rx": ["0"],
+         "last_tx": ["0"],
+         "node": "0",
+         "remote": false
+      }
+   ]
+}
+```
+
+#### `list_static_clients()`
+Invocation: `await router.list_static_clients()` (tested in `tests/test_api.py::test_static_clients`)
+
+Returns static DHCP reservations from `lan/get_static_bind_list`:
+```json
+{
+   "static_bind_list": [
+      {
+         "ip": "192.168.8.102",
+         "mac": "00:11:22:33:44:02",
+         "name": "HomeAssistant"
+      },
+      {
+         "ip": "192.168.8.110",
+         "mac": "00:11:22:33:44:10",
+         "name": "MockNAS"
+      },
+      {
+         "ip": "192.168.8.120",
+         "mac": "00:11:22:33:44:20",
+         "name": "MockAP"
+      },
+      {
+         "ip": "192.168.8.130",
+         "mac": "00:11:22:33:44:30",
+         "name": "MockVacuum"
+      }
+   ]
+}
+```
+
+---
+
+### 3.4 Wi-Fi Management
+
+#### `wifi_ifaces_get()`
 Invocation: `await router.wifi_ifaces_get()` (tested in `tests/test_api.py::test_wifi_ifaces_get`)
 
 Iterates through all Wi-Fi radio devices returned by `wifi/get_config`, indexes by interface name, and redacts keys to `None`:
@@ -390,7 +575,19 @@ Iterates through all Wi-Fi radio devices returned by `wifi/get_config`, indexes 
 }
 ```
 
-### `wireguard_client_state()`
+#### `wifi_iface_set_enabled()`
+Invocation: `await router.wifi_iface_set_enabled("default_radio0", False)` (tested in `tests/test_api.py::test_wifi_ifaces_set_enabled`)
+
+Enables or disables an interface by name via `wifi/set_config`:
+```json
+{}
+```
+
+---
+
+### 3.5 WireGuard Client
+
+#### `wireguard_client_state()`
 Invocation: `await router.wireguard_client_state()` (tested in `tests/test_api.py::test_wireguard_client_state`)
 
 Returns a list of status objects. On firmware <4.8, `gli4py` wraps the single `wg-client/get_status` dictionary in a list `[status]` to match the firmware >=4.8 `vpn-client` `status_list` structure:
@@ -409,6 +606,116 @@ Returns a list of status objects. On firmware <4.8, `gli4py` wraps the single `w
       "proxy":true,
       "log":"",
       "ipv4":""
+   }
+]
+```
+
+#### `wireguard_client_list()`
+Invocation: `await router.wireguard_client_list()` (tested in `tests/test_api.py::test_wireguard_client_list`)
+
+Flattens and extracts client peers from `wg-client/get_all_config_list`:
+```json
+[
+   {
+      "name": "MockVPN/MockTunnel",
+      "group_id": 7707,
+      "peer_id": 2001
+   },
+   {
+      "name": "MockVPN/MockSplitTunnel",
+      "group_id": 7707,
+      "peer_id": 2002
+   }
+]
+```
+
+#### `wireguard_client_start()` / `wireguard_client_stop()`
+Invocation: `await router.wireguard_client_start(7707, 2001)` / `await router.wireguard_client_stop(2001)` (tested in `tests/test_api.py::test_wireguard_client_start_stop`)
+
+Starts or stops a WireGuard tunnel peer:
+```json
+{}
+```
+
+---
+
+### 3.6 Tailscale
+
+#### `tailscale_configured()`
+Invocation: `await router.tailscale_configured()` (tested in `tests/test_api.py::test_tailscale_configured`)
+
+Returns `bool` indicating whether Tailscale is installed and configured:
+```python
+True
+```
+
+#### `tailscale_connection_state()`
+Invocation: `await router.tailscale_connection_state()` (tested in `tests/test_api.py::test_tailscale_connection_state`)
+
+Maps `tailscale/get_status` state codes to `gli4py.enums.TailscaleConnection`:
+```python
+TailscaleConnection.CONNECTED   # status == 3
+# Other states:
+# TailscaleConnection.UNKNOWN   (0)
+# TailscaleConnection.STARTING  (1)
+# TailscaleConnection.STOPPED   (2)
+```
+
+#### `tailscale_start()` / `tailscale_stop()`
+Invocation: `await router.tailscale_start()` / `await router.tailscale_stop()` (tested in `tests/test_api.py::test_tailscale_start_stop`)
+
+Starts or stops the Tailscale daemon via `tailscale/set_config`:
+```json
+{}
+```
+
+---
+
+### 3.7 Cellular / Modem
+
+#### `modem_info()`
+Invocation: `await router.modem_info()` (tested in `tests/test_api.py::test_modem_info`)
+
+Direct passthrough of `modem/get_modem_info`:
+```json
+{
+   "modems": [
+      {
+         "carrier": "MockCarrier",
+         "imei": "123456789012345",
+         "modem_id": 1,
+         "model": "MockModem-EC25",
+         "status": "registered"
+      }
+   ]
+}
+```
+
+#### `modem_sim_info()`
+Invocation: `await router.modem_sim_info()` (tested in `tests/test_api.py::test_modem_sim_info`)
+
+Direct passthrough of `modem/get_sim_info`:
+```json
+[
+   {
+      "iccid": "89012345678901234567",
+      "imsi": "123456789012345",
+      "sim_state": "ready"
+   }
+]
+```
+
+#### `modem_sim_signal()`
+Invocation: `await router.modem_sim_signal()` (tested in `tests/test_api.py::test_modem_sim_signal`)
+
+Direct passthrough of `modem/get_sim_signal`:
+```json
+[
+   {
+      "rsrp": -95,
+      "rsrq": -10,
+      "rssi": -65,
+      "sinr": 15
    }
 ]
 ```
