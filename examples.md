@@ -292,8 +292,6 @@ tests/test_api.py::test_wifi_ifaces_get
 }
 ```
 
-tests/test_api.py::test_wireguard_client_state
-```json
 {
    "rx_bytes":0,
    "ipv6":"",
@@ -309,3 +307,55 @@ tests/test_api.py::test_wireguard_client_state
    "ipv4":""
 }
 ```
+
+## Measured Real-World API Timings
+
+Measured against a physical GL.iNet GL-B1300 running firmware 4.3.25:
+
+| Operation | Method / Endpoint | Real-World Timing | Notes |
+|:---|:---|:---|:---|
+| **Challenge** | `challenge` | ~63 ms | Alg=1 (MD5 crypt), returns salt & nonce |
+| **Login** | `login` | ~32 ms | Verifies hash, issues session token `sid` |
+| **Router Info** | `system/get_info` | ~71 ms | Returns firmware, model, features, board info |
+| **Router Status** | `system/get_status` | ~94 ms | Network, wifi, service, system metrics |
+| **Router Load** | `system/get_load` | ~51 ms | Memory, buff/cache, load average |
+| **Router MAC** | `macclone/get_mac` | ~42 ms | Factory and cloned MAC addresses |
+| **Connected Clients** | `clients/get_list` | ~283 ms | Full list of connected & offline clients with traffic stats |
+| **Static Leases** | `lan/get_static_bind_list` | ~56 ms | DHCP static bindings |
+| **WiFi Config** | `wifi/get_config` | ~466 ms | Queries radio0 and radio1 interfaces |
+| **Cable Status** | `cable/get_status` | ~112 ms | WAN cable connection & DHCP status |
+| **DNS Config** | `dns/get_config` | ~45 ms | DNS servers and rebind protection |
+| **Edge Router Status** | `edgerouter/get_status` | ~4.57 s | Probes upstream DHCP / bypass routing status |
+| **Ping (Reachable)** | `diag/ping` (`8.8.8.8`) | ~3.35 s | Runs 4 ICMP echo probes on device |
+| **Ping (Unreachable)**| `diag/ping` (`0.0.0.1`) | ~11.06 s | Times out across 4 failed probe attempts |
+| **Repeater Scan** | `repeater/scan` | ~17.99 s | Full channel scan across 2.4 GHz and 5 GHz radios |
+| **WireGuard Config** | `wg-client/get_all_config_list` | ~60 ms | Lists WireGuard client peer configurations |
+| **WireGuard Status** | `wg-client/get_status` | ~68 ms | Firmware <4.8 returns single status object |
+| **OpenVPN Status** | `ovpn-client/get_status` | ~62 ms | OpenVPN client status |
+| **Repeater Status** | `repeater/get_status` | ~40 ms | Repeater connection state |
+| **Router Reboot** | `system/reboot` | ~15 s shutdown, ~45-60 s full reboot | Shuts down after ~15s, total reboot ~45-60s |
+
+## API Documentation Discrepancies
+
+Observed discrepancies between `GL.iNet SDK4.0 API-DOCS.html` and real router responses:
+
+1. **`clients/get_list`**: The HTML documentation shows minimal client properties (`mac`, `ip`, `name`, `online`), but real GL.iNet firmware returns rich per-client telemetry:
+   - `limit_tx`, `limit_rx`: bandwidth throttling limits (0 if unthrottled).
+   - `last_rx`, `last_tx`: recent transfer rates.
+   - `total_tx_init`, `total_rx_init`: cumulative byte counters.
+   - `online_time`, `alive`: connection timestamps and elapsed seconds.
+   - `vendor`, `iface`: OUI lookup vendor name and interface (`cable`, `wifi2g`, `wifi5g`).
+
+2. **`repeater/scan`**: Documentation indicates a flat structure, but real firmware returns:
+   - Nested encryption dictionary: `{"enabled": bool, "description": "WPA2 PSK (CCMP)", "uci": "psk2"}`.
+   - Band identifier as `"2g"` or `"5g"` (lowercase).
+   - Signal strength as integer dBm (e.g. `-74`).
+
+3. **`cable/get_status`**: Real firmware returns a nested `secondwan` dictionary (`{"mode": 1}`) and nested `ipv4` dictionary containing `ip`, `gateway`, `mask`, `dns` rather than top-level fields.
+
+4. **Model/Firmware Feature Gating**: The documentation lists endpoints like `adguardhome/*`, `tailscale/*`, and `bark/*` globally. However, on models like GL-B1300 without these software features enabled, calling these endpoints returns JSON-RPC error code `-32601 Method not found`.
+
+5. **VPN Client API Evolution**:
+   - Firmware < 4.8.0: WireGuard client state is queried via `wg-client/get_status`, returning a single dictionary object.
+   - Firmware >= 4.8.0: Replaced by unified `vpn-client/get_status`, which returns a `status_list` array allowing multiple concurrent tunnels.
+

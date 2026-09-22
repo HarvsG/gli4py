@@ -1,0 +1,15 @@
+{
+  "config_list": [
+    {
+      "group_id": 1001,
+      "group_name": "MockWGGroup",
+      "peers": [
+        {
+          "address_v4": "10.0.0.2",
+          "name": "Peer1",
+          "peer_id": 2001
+        }
+      ]
+    }
+  ]
+}

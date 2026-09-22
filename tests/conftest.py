@@ -2,7 +2,7 @@
 # pylint: disable=wrong-import-position,redefined-outer-name,broad-exception-caught,protected-access,no-member,duplicate-code
 
 import os
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Generator
 from pathlib import Path
 
 # Ensure development mode environment variables are cleared so dev environments
@@ -27,6 +27,7 @@ from uplink import AiohttpClient
 
 from gli4py.glinet import GLinet
 from gli4py.helpers import normalize_url
+from gli4py.mock import MockRouterServer
 
 # Suppress bug in uplink's AiohttpClient.__del__ during Python shutdown
 AiohttpClient.__del__ = lambda self: None
@@ -39,7 +40,7 @@ def pytest_addoption(parser: pytest.Parser) -> None:
         "--with-live",
         action="store_true",
         default=False,
-        help="Run live tests against a physical GL.iNet router (skipped by default).",
+        help="Run live tests against a physical GL.iNet router (uses mock server by default).",
     )
     parser.addoption(
         "--url",
@@ -73,27 +74,45 @@ def pytest_addoption(parser: pytest.Parser) -> None:
     )
 
 
-def pytest_collection_modifyitems(
-    config: pytest.Config, items: list[pytest.Item]
-) -> None:
-    """Skip live tests by default unless --live is specified."""
-    if not config.getoption("live"):
-        skip_live = pytest.mark.skip(reason="Live tests disabled (pass --live to run)")
-        for item in items:
-            if "live" in item.keywords:
-                item.add_marker(skip_live)
+@pytest.fixture(scope="session")
+def is_live(request: pytest.FixtureRequest) -> bool:
+    """Return whether tests are running against a physical live router."""
+    return bool(request.config.getoption("live"))
 
 
 @pytest.fixture(scope="session")
-def router_url(request: pytest.FixtureRequest) -> str:
-    """Return normalized router URL from CLI options or environment."""
-    raw_url: str = request.config.getoption("router_url")
-    return normalize_url(raw_url)
+def mock_server(is_live: bool) -> Generator[MockRouterServer | None, None]:
+    """Start mock router server for session when not targeting live hardware."""
+    if is_live:
+        yield None
+        return
+
+    server = MockRouterServer(reboot_duration=0.1)
+    server.start()
+    yield server
+    server.stop()
 
 
 @pytest.fixture(scope="session")
-def router_password(request: pytest.FixtureRequest) -> str | None:
-    """Return router password from CLI options, env var, or password file."""
+def router_url(
+    request: pytest.FixtureRequest,
+    is_live: bool,
+    mock_server: MockRouterServer | None,
+) -> str:
+    """Return router URL (live router URL if --live, otherwise mock server URL)."""
+    if is_live:
+        raw_url: str = request.config.getoption("router_url")
+        return normalize_url(raw_url)
+    assert mock_server is not None
+    return mock_server.url
+
+
+@pytest.fixture(scope="session")
+def router_password(request: pytest.FixtureRequest, is_live: bool) -> str | None:
+    """Return router password (from CLI/file if live, or default mock password)."""
+    if not is_live:
+        return "goodlife"
+
     # 1. Explicit CLI option or env var
     cli_pwd = request.config.getoption("router_password")
     if cli_pwd is not None:
@@ -121,13 +140,20 @@ def disruptive_tests(request: pytest.FixtureRequest) -> bool:
     return bool(request.config.getoption("disruptive_tests"))
 
 
+@pytest.fixture(scope="session")
+def reboot_wait_time(is_live: bool) -> float:
+    """Return sleep duration to wait for router shutdown during reboot test."""
+    return 15.0 if is_live else 0.15
+
+
 @pytest.fixture(scope="module")
 async def router(router_url: str) -> AsyncGenerator[GLinet, None]:
     """Yield a module-scoped GLinet client connected to the target router URL."""
-    client = GLinet(base_url=router_url)
+    uplink_client = AiohttpClient()
+    client = GLinet(base_url=router_url, client=uplink_client)
     yield client
     try:
-        session = await client._client.session()
+        session = await uplink_client.session()
         await session.close()
     except Exception:
         pass

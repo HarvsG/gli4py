@@ -1,0 +1,20 @@
+{
+  "status_list": [
+    {
+      "domain": "vpn.mock.example.com",
+      "enabled": false,
+      "group_id": 1001,
+      "ipv4": "10.0.0.2",
+      "ipv6": "",
+      "log": "",
+      "name": "MockWGGroup/Peer1",
+      "peer_id": 2001,
+      "port": 51820,
+      "proxy": true,
+      "rx_bytes": 0,
+      "status": 0,
+      "tunnel_id": 2001,
+      "tx_bytes": 0
+    }
+  ]
+}

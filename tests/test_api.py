@@ -366,7 +366,9 @@ async def test_tailscale_stop(router: GLinet, disruptive_tests: bool) -> None:
 
 
 @pytest.mark.disruptive
-async def test_router_reboot(router: GLinet, disruptive_tests: bool) -> None:
+async def test_router_reboot(
+    router: GLinet, disruptive_tests: bool, reboot_wait_time: float
+) -> None:
     """Test rebooting the router."""
     if not disruptive_tests:
         pytest.skip("Disruptive tests are disabled (pass --disruptive-tests to run)")
@@ -374,10 +376,10 @@ async def test_router_reboot(router: GLinet, disruptive_tests: bool) -> None:
         pytest.skip("Router not logged in")
     response = await router.router_reboot()
     print(response)
-    print("waiting `15s` for router to shutdown")
-    await asyncio.sleep(15)
+    print(f"waiting `{reboot_wait_time}s` for router to shutdown")
+    await asyncio.sleep(reboot_wait_time)
     while not await router.router_reachable():
         print("waiting for router to wake")
-        await asyncio.sleep(1)
+        await asyncio.sleep(0.05)
     with pytest.raises(NonZeroResponse):
         await router.router_info()

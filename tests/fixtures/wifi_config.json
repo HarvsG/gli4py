@@ -1,0 +1,53 @@
+{
+  "dfs_support": false,
+  "res": [
+    {
+      "band": "2G",
+      "device": "radio0",
+      "ifaces": [
+        {
+          "enabled": true,
+          "encryption": "psk2",
+          "guest": false,
+          "hidden": false,
+          "key": "goodlife",
+          "name": "default_radio0",
+          "ssid": "GL-MOCK-2G"
+        },
+        {
+          "enabled": false,
+          "encryption": "psk2",
+          "guest": true,
+          "hidden": false,
+          "key": "goodlife",
+          "name": "guest2g",
+          "ssid": "GL-MOCK-2G-Guest"
+        }
+      ]
+    },
+    {
+      "band": "5G",
+      "device": "radio1",
+      "ifaces": [
+        {
+          "enabled": true,
+          "encryption": "sae-mixed",
+          "guest": false,
+          "hidden": false,
+          "key": "goodlife",
+          "name": "default_radio1",
+          "ssid": "GL-MOCK-5G"
+        },
+        {
+          "enabled": false,
+          "encryption": "psk2",
+          "guest": true,
+          "hidden": false,
+          "key": "goodlife",
+          "name": "guest5g",
+          "ssid": "GL-MOCK-5G-Guest"
+        }
+      ]
+    }
+  ]
+}
