@@ -109,39 +109,35 @@ class GLinet(Consumer):
             return False
         return False
 
+    @staticmethod
+    # pylint: disable=too-many-arguments, too-many-positional-arguments
+    def _compute_hash(alg, salt, nonce, hash_method, username, password) -> str:
+        """Synchronous helper for CPU-bound hashing."""
+        # Step2: Generate cipher text using openssl algorithm
+        if alg == 1:  # MD5
+            cipher_password = md5_crypt.using(salt=salt).hash(password)
+        elif alg == 5:  # SHA-256
+            cipher_password = sha256_crypt.using(salt=salt, rounds=5000).hash(password)
+        elif alg == 6:  # SHA-512
+            cipher_password = sha512_crypt.using(salt=salt, rounds=5000).hash(password)
+        else:
+            raise ValueError(
+                "Router requested unsupported hashing algorithm for cipher password"
+            )
+
+        # Step3: Generate hash values for login
+        data = f"{username}:{cipher_password}:{nonce}"
+        if hash_method == "md5":  # MD5
+            return hashlib.md5(data.encode()).hexdigest()
+        if hash_method == "sha256":  # SHA-256
+            return hashlib.sha256(data.encode()).hexdigest()
+        if hash_method == "sha512":  # SHA-512
+            return hashlib.sha512(data.encode()).hexdigest()
+
+        raise ValueError("Router requested unsupported hashing algorithm for hash")
+
     async def login(self, username: str, password: str) -> None:
         """Logs in to the GL-inet router using the provided username and password."""
-
-        # pylint: disable=too-many-arguments, too-many-positional-arguments
-        def _compute_hash(alg, salt, nonce, hash_method, username, password) -> str:
-            """Synchronous helper for CPU-bound hashing."""
-            # Step2: Generate cipher text using openssl algorithm
-            if alg == 1:  # MD5
-                cipher_password = md5_crypt.using(salt=salt).hash(password)
-            elif alg == 5:  # SHA-256
-                cipher_password = sha256_crypt.using(salt=salt, rounds=5000).hash(
-                    password
-                )
-            elif alg == 6:  # SHA-512
-                cipher_password = sha512_crypt.using(salt=salt, rounds=5000).hash(
-                    password
-                )
-            else:
-                raise ValueError(
-                    "Router requested unsupported hashing algorithm for cipher password"
-                )
-
-            # Step3: Generate hash values for login
-            data = f"{username}:{cipher_password}:{nonce}"
-            if hash_method == "md5":  # MD5
-                return hashlib.md5(data.encode()).hexdigest()
-            if hash_method == "sha256":  # SHA-256
-                return hashlib.sha256(data.encode()).hexdigest()
-            if hash_method == "sha512":  # SHA-512
-                return hashlib.sha512(data.encode()).hexdigest()
-
-            raise ValueError("Router requested unsupported hashing algorithm for hash")
-
         try:
             res = await self._challenge(username)
 
@@ -152,7 +148,7 @@ class GLinet(Consumer):
 
             # Run the heavy, blocking cryptography operations in a separate thread
             hsh = await asyncio.to_thread(
-                _compute_hash, alg, salt, nonce, hash_method, username, password
+                self._compute_hash, alg, salt, nonce, hash_method, username, password
             )
 
             # Step4: Get sid by login
