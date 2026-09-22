@@ -363,6 +363,12 @@ class GLinet(Consumer):
             )
         raise ValueError("iface_name does not exist")
 
+    async def _mlo_config_get(self) -> dict:
+        """Retrieves the MLO configuration from the router."""
+        return await self._request(
+            self.gen_sid_payload("call", ["wifi", "get_mlo_config"], self.sid)
+        )
+    
     # VPN information
 
     async def wireguard_client_list(self) -> list[dict[str, Any]]:
