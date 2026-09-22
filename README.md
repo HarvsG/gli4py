@@ -92,7 +92,6 @@ async def main() -> None:
 
 if __name__ == "__main__":
     asyncio.run(main())
-
 ```
 
 See [examples.md](examples.md) for sample API payloads and responses.
@@ -105,9 +104,8 @@ See [examples.md](examples.md) for sample API payloads and responses.
 
 1. **Clone the repository**:
 ```bash
-git clone [https://github.com/HarvsG/gli4py.git](https://github.com/HarvsG/gli4py.git)
+git clone https://github.com/HarvsG/gli4py.git
 cd gli4py
-
 ```
 
 
@@ -184,17 +182,91 @@ pip install -e /workspaces/gli4py
 
 ## API Enumeration
 
-The repository includes `enumeration.py`, a utility script designed to probe a GL.iNet router to discover which API modules and methods are supported by the device's specific firmware. This produces a JSON report detailing the hardware, firmware version, and a complete mapping of successful API endpoints.
+The repository includes an API enumeration utility (`gli-enumerate` or `enumeration.py`) designed to probe a GL.iNet router to discover which API modules and methods are supported by the device's specific firmware. This produces a JSON report detailing the hardware, firmware version, and a complete mapping of successful API endpoints.
+
+### Installation
+
+Install `gli-py` via pip:
+
+```bash
+pip install gli-py
+```
+
+Or install from source for local development:
+
+```bash
+git clone https://github.com/HarvsG/gli4py.git
+cd gli4py
+poetry install
+```
 
 ### Usage
 
-The script requires the router's RPC URL and a file containing the administrator password. By default, it operates in a safe, read-only mode by skipping methods that modify router state.
+The utility connects to your router's JSON-RPC endpoint. You can specify the router's IP address or URL (`/rpc` is appended automatically if omitted) and provide the administrator password via the `--password` (`-p`) argument (or interactively or via `--pwd-file`).
+
+By default, enumeration operates in a safe, read-only mode by skipping methods that modify router configuration or state.
 
 **Basic read-only probe:**
 
 ```bash
-python3 enumeration.py --url http://192.168.8.1/rpc --pwd-file router_pwd
+# If installed via pip:
+gli-enumerate --url 192.168.8.1 --password your_router_password
 
+# Or using short flags:
+gli-enumerate -u 192.168.8.1 -p your_router_password
+
+# Or from a cloned repository checkout:
+python3 enumeration.py -u 192.168.8.1 -p your_router_password
+```
+
+**Save report to file:**
+
+```bash
+gli-enumerate -u 192.168.8.1 -p your_router_password --output report.json
+```
+
+**Diagnostic & targeted checks:**
+
+For troubleshooting or diagnosing specific features without probing the full API surface:
+
+```bash
+# Probe only a specific module (e.g. system, wifi, or clients):
+gli-enumerate -u 192.168.8.1 -p your_router_password --module system
+
+# Probe multiple modules:
+gli-enumerate -u 192.168.8.1 -p your_router_password -m system,wifi
+
+# Probe only a specific method across modules:
+gli-enumerate -u 192.168.8.1 -p your_router_password --method get_status
+
+# Probe a single specific endpoint:
+gli-enumerate -u 192.168.8.1 -p your_router_password --endpoint system.get_info
+```
+
+**Alternative password input:**
+
+```bash
+# Using a password file:
+gli-enumerate -u 192.168.8.1 --pwd-file router_pwd
+
+# Interactive prompt (omit password flags in an interactive shell):
+gli-enumerate -u 192.168.8.1
+```
+
+**Sharing reports via pastebin:**
+
+The enumeration output automatically redacts sensitive fields (passwords, Wi-Fi keys, session IDs, serial numbers, and partially masks MAC and IP addresses). You can easily share reports or subsections for troubleshooting by piping into a command-line pastebin such as [paste.rs](https://paste.rs):
+
+```bash
+# Upload full report directly to paste.rs:
+gli-enumerate -u 192.168.8.1 -p your_router_password --quiet | curl --data-binary @- https://paste.rs
+
+# Upload an existing report file:
+curl --data-binary @report.json https://paste.rs
+
+# Upload a specific subsection using jq (e.g. Wi-Fi configuration or summary):
+gli-enumerate -u 192.168.8.1 -p your_router_password --quiet | jq '.modules.wifi' | curl --data-binary @- https://paste.rs
+gli-enumerate -u 192.168.8.1 -p your_router_password --quiet | jq '.summary' | curl --data-binary @- https://paste.rs
 ```
 
 **Probe all endpoints (including write methods):**
@@ -202,10 +274,8 @@ python3 enumeration.py --url http://192.168.8.1/rpc --pwd-file router_pwd
 > **Caution:** Probing write methods *will* alter the router's configuration or state.
 
 ```bash
-python3 enumeration.py --url http://192.168.8.1/rpc --pwd-file router_pwd --no-read-only
-
+gli-enumerate -u 192.168.8.1 -p your_router_password --no-read-only
 ```
-
 
 ---
 
@@ -217,8 +287,4 @@ python3 enumeration.py --url http://192.168.8.1/rpc --pwd-file router_pwd --no-r
 
 ## License
 
-This project is licensed under the [GNU General Public License v3.0](https://www.google.com/search?q=LICENSE).
-
-```
-
-```
+This project is licensed under the [GNU General Public License v3.0](LICENSE).

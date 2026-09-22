@@ -7,6 +7,9 @@ license = "GNU GENERAL PUBLIC LICENSE"
 readme = "README.md"
 packages = [{include = "gli4py"}]
 
+[tool.poetry.scripts]
+gli-enumerate = "gli4py.enumeration:main"
+
 [tool.poetry.dependencies]
 python = "^3.11"
 uplink = "0.10.0"
