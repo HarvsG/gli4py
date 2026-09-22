@@ -1,0 +1,114 @@
+{
+  "network": [
+    {
+      "online": true,
+      "up": true,
+      "interface": "wan"
+    },
+    {
+      "online": false,
+      "up": false,
+      "interface": "wwan"
+    },
+    {
+      "online": false,
+      "up": false,
+      "interface": "tethering"
+    },
+    {
+      "online": false,
+      "up": false,
+      "interface": "wan6"
+    },
+    {
+      "online": false,
+      "up": false,
+      "interface": "wwan6"
+    },
+    {
+      "online": false,
+      "up": false,
+      "interface": "tethering6"
+    }
+  ],
+  "wifi": [
+    {
+      "guest": false,
+      "ssid": "GL-MOCK-2G",
+      "up": true,
+      "channel": 1,
+      "band": "2G",
+      "name": "default_radio0",
+      "passwd": "None"
+    },
+    {
+      "guest": false,
+      "ssid": "GL-MOCK-5G",
+      "up": true,
+      "channel": 48,
+      "band": "5G",
+      "name": "default_radio1",
+      "passwd": "None"
+    },
+    {
+      "guest": true,
+      "ssid": "GL-MOCK-2G-Guest",
+      "up": false,
+      "channel": 1,
+      "band": "2G",
+      "name": "guest2g",
+      "passwd": "None"
+    },
+    {
+      "guest": true,
+      "ssid": "GL-MOCK-5G-Guest",
+      "up": false,
+      "channel": 48,
+      "band": "5G",
+      "name": "guest5g",
+      "passwd": "None"
+    }
+  ],
+  "service": [
+    {
+      "name": "wgclient",
+      "status": 0
+    },
+    {
+      "name": "wgserver",
+      "status": 0
+    },
+    {
+      "name": "ovpnclient",
+      "status": 0
+    },
+    {
+      "name": "ovpnserver",
+      "status": 0
+    }
+  ],
+  "client": [
+    {
+      "cable_total": 2,
+      "wireless_total": 1
+    }
+  ],
+  "system": {
+    "netnat_enabled": false,
+    "ddns_enabled": false,
+    "tzoffset": "+0000",
+    "guest_ip": "192.168.9.1",
+    "flash_app": 610304,
+    "flash_total": 33554432,
+    "memory_total": 254586880,
+    "memory_free": 137543680,
+    "ipv6_enabled": false,
+    "memory_buff_cache": 33550336,
+    "uptime": 86400.0,
+    "load_average": [0.15, 0.2, 0.18],
+    "guest_netmask": "255.255.255.0",
+    "mode": 4,
+    "flash_free": 14135296,
+    "timestamp": 1750000000
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "enable_https": false,
+  "enable_ping": false,
+  "enable_ssh": false,
+  "enable_whitelist": false,
+  "whitelist": []
+}
+

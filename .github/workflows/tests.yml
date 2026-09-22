@@ -40,8 +40,8 @@ jobs:
       - name: Install dependencies
         run: poetry install --no-interaction
 
-      - name: Run unit tests
-        run: poetry run pytest -m "not live" --cov=gli4py --cov-report=term-missing
+      - name: Run tests
+        run: poetry run pytest --disruptive-tests --cov=gli4py --cov-report=term-missing
 
       - name: Verify package build
         run: poetry build --no-interaction

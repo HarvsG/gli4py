@@ -1,0 +1,11 @@
+{
+  "modems": [
+    {
+      "carrier": "MockCarrier",
+      "imei": "123456789012345",
+      "modem_id": 1,
+      "model": "MockModem-EC25",
+      "status": "registered"
+    }
+  ]
+}

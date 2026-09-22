@@ -1,0 +1,14 @@
+{
+  "config_list": [
+    {
+      "group_id": 3001,
+      "group_name": "MockOVPNGroup",
+      "ovpn_list": [
+        {
+          "client_id": 4001,
+          "name": "MockClient1"
+        }
+      ]
+    }
+  ]
+}

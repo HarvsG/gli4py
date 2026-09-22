@@ -1,0 +1,8 @@
+{
+  "func": "none",
+  "funcs": [
+    "openvpn",
+    "wireguard"
+  ]
+}
+

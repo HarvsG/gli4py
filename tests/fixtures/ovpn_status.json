@@ -1,0 +1,14 @@
+{
+  "client_id": 4001,
+  "domain": "ovpn.mock.example.com",
+  "group_id": 3001,
+  "ipv4": "",
+  "ipv6": "",
+  "log": "",
+  "mode": "client",
+  "name": "MockOVPNGroup/MockClient1",
+  "port": 1194,
+  "rx_bytes": 0,
+  "status": 0,
+  "tx_bytes": 0
+}

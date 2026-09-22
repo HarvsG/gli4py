@@ -1,0 +1,19 @@
+{
+  "externals": [
+    "lan",
+    "wan",
+    "guest",
+    "wgclient",
+    "wgserver",
+    "wan6"
+  ],
+  "internals": [
+    "lan",
+    "wan",
+    "guest",
+    "wgclient",
+    "wgserver",
+    "wan6"
+  ]
+}
+
