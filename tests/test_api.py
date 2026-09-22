@@ -1,7 +1,7 @@
 """Integration tests for the GLinet router API.
 
-These tests execute real API calls against a GL.iNet router when invoked with --live,
-and will run against a mock API backend in future test iterations.
+These tests execute against a mock router server by default, or against a physical
+GL.iNet router when invoked with --live.
 """
 # pylint: disable=protected-access,redefined-outer-name
 
@@ -18,7 +18,6 @@ from gli4py.glinet import NEW_VPN_CLIENT_VERSION, GLinet
 # running on a module-scoped event loop.
 pytestmark = [
     pytest.mark.asyncio(loop_scope="module"),
-    pytest.mark.live,
 ]
 
 models = [
