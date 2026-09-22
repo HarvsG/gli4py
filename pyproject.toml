@@ -34,7 +34,8 @@ build-backend = "poetry.core.masonry.api"
 testpaths = ["tests"]
 asyncio_mode = "auto"
 markers = [
-    "live: tests that require a physical GL.iNet router at 192.168.0.1 (deselect with '-m \"not live\"')",
+    "live: tests that require a physical GL.iNet router (pass --live to run)",
+    "disruptive: tests that modify router configuration or reboot (pass --disruptive-tests to run)",
 ]
 
 [tool.ruff]
