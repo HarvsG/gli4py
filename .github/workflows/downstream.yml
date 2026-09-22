@@ -1,0 +1,50 @@
+name: Downstream Integration Test
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  downstream:
+    name: Test with ha-glinet4-integration
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out gli4py
+        uses: actions/checkout@v7
+        with:
+          path: gli4py
+
+      - name: Check out ha-glinet4-integration
+        uses: actions/checkout@v7
+        with:
+          repository: HarvsG/ha-glinet4-integration
+          path: ha-glinet4-integration
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Set up Python 3.14
+        run: |
+          uv python install 3.14
+
+      - name: Install downstream dependencies and override gli4py with PR build
+        working-directory: ha-glinet4-integration
+        run: |
+          uv sync
+          uv pip install ../gli4py
+
+      - name: Run ha-glinet4-integration tests
+        working-directory: ha-glinet4-integration
+        run: |
+          uv run pytest tests/ -k "not live"

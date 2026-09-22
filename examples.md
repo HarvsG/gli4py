@@ -719,3 +719,39 @@ Direct passthrough of `modem/get_sim_signal`:
    }
 ]
 ```
+
+---
+
+### 3.8 Low-Level Payload Utilities
+
+#### `gen_sid_payload()`
+Invocation: `GLinet.gen_sid_payload("call", ["system", "get_info"], sid="c4b8e1f0a2d3e4b5c6d7e8f9a0b1c2d3")`
+
+Generates an authenticated JSON-RPC 2.0 request payload with a session ID:
+```json
+{
+   "method": "call",
+   "jsonrpc": "2.0",
+   "params": [
+      "c4b8e1f0a2d3e4b5c6d7e8f9a0b1c2d3",
+      "system",
+      "get_info"
+   ],
+   "id": 0
+}
+```
+
+#### `gen_no_auth_payload()`
+Invocation: `GLinet.gen_no_auth_payload("challenge", {"username": "root"})`
+
+Generates an unauthenticated JSON-RPC 2.0 request payload without a session ID:
+```json
+{
+   "method": "challenge",
+   "jsonrpc": "2.0",
+   "params": {
+      "username": "root"
+   },
+   "id": 0
+}
+```
