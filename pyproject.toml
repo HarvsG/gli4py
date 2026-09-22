@@ -34,7 +34,7 @@ python_version = "3.14"
 files = ["gli4py"]
 
 [[tool.mypy.overrides]]
-module = ["uplink.*", "passlib.*"]
+module = ["uplink.*", "passlib.*", "pydantic", "pydantic.*"]
 ignore_missing_imports = true
 disallow_subclassing_any = false
 disallow_untyped_decorators = false
