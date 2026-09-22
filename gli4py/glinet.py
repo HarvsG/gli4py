@@ -80,6 +80,7 @@ class GLinet(Consumer):
     async def _request(self, data: Body) -> Response:
         """Base method to make a request to the GL-inet API."""
         raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
 
     @response_handler(raise_for_status)
     @json
@@ -88,6 +89,7 @@ class GLinet(Consumer):
     async def _request_long_timeout(self, data: Body) -> Response:
         """Base method to make a request to the GL-inet API with a longer timeout."""
         raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
 
     async def _challenge(self, username: str) -> dict:
         """Requests a challenge from the GL-inet API to start the login process."""

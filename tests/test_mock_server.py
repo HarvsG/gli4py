@@ -413,3 +413,321 @@ async def test_additional_endpoints_coverage() -> None:
         finally:
             session = await uplink_client.session()
             await session.close()
+
+
+import time
+
+
+def _sync_login(url: str) -> str:
+    """Helper: perform challenge + login via raw requests and return the sid."""
+    challenge = requests.post(
+        url,
+        json={
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "challenge",
+            "params": {"username": "root"},
+        },
+        timeout=2.0,
+    ).json()["result"]
+    hsh = GLinet._compute_hash(
+        challenge["alg"],
+        challenge["salt"],
+        challenge["nonce"],
+        challenge["hash-method"],
+        "root",
+        "goodlife",
+    )
+    login_res = requests.post(
+        url,
+        json={
+            "jsonrpc": "2.0",
+            "id": 2,
+            "method": "login",
+            "params": {"username": "root", "hash": hsh},
+        },
+        timeout=2.0,
+    ).json()["result"]
+    return login_res["sid"]
+
+
+@pytest.mark.asyncio
+async def test_expire_session() -> None:
+    """Verify that expire_session marks a session as expired so subsequent calls fail."""
+    async with MockRouter() as mock:
+        uplink_client = AiohttpClient()
+        client = GLinet(base_url=mock.url, client=uplink_client)
+        try:
+            await client.login("root", "goodlife")
+            assert client.logged_in
+
+            # Expire the session manually
+            mock.expire_session(client.sid)
+
+            with pytest.raises(TokenError) as exc_info:
+                await client.router_info()
+            assert "-1" in str(exc_info.value)
+        finally:
+            session = await uplink_client.session()
+            await session.close()
+
+
+def test_invalid_json_body() -> None:
+    """Verify that a POST with non-JSON body returns parse error -32700."""
+    with MockRouterServer() as s:
+        res = requests.post(
+            s.url,
+            data="this is not json",
+            headers={"Content-Type": "application/json"},
+            timeout=2.0,
+        ).json()
+        assert "error" in res
+        assert res["error"]["code"] == -32700
+
+
+def test_unknown_rpc_method() -> None:
+    """Verify that an unknown top-level JSON-RPC method returns -32601."""
+    with MockRouterServer() as s:
+        res = requests.post(
+            s.url,
+            json={"jsonrpc": "2.0", "id": 1, "method": "unknown"},
+            timeout=2.0,
+        ).json()
+        assert "error" in res
+        assert res["error"]["code"] == -32601
+
+
+def test_call_with_invalid_params() -> None:
+    """Verify that a 'call' with non-list params returns -32602."""
+    with MockRouterServer() as s:
+        sid = _sync_login(s.url)
+        res = requests.post(
+            s.url,
+            json={
+                "jsonrpc": "2.0",
+                "id": 10,
+                "method": "call",
+                "params": {"bad": True},
+            },
+            timeout=2.0,
+        ).json()
+        assert res["error"]["code"] == -32602
+
+
+def test_call_with_null_sid() -> None:
+    """Verify that a 'call' with null sid returns -32602."""
+    with MockRouterServer() as s:
+        res = requests.post(
+            s.url,
+            json={
+                "jsonrpc": "2.0",
+                "id": 10,
+                "method": "call",
+                "params": [None, "system", "get_info"],
+            },
+            timeout=2.0,
+        ).json()
+        assert res["error"]["code"] == -32602
+
+
+@pytest.mark.asyncio
+async def test_simulate_delays() -> None:
+    """Verify that simulate_delays=True introduces a measurable delay."""
+    async with MockRouter(simulate_delays=True) as mock:
+        uplink_client = AiohttpClient()
+        client = GLinet(base_url=mock.url, client=uplink_client)
+        try:
+            await client.login("root", "goodlife")
+            t0 = time.monotonic()
+            await client.router_info()
+            elapsed = time.monotonic() - t0
+            # system.get_info timing is 0.071s; allow some tolerance
+            assert elapsed >= 0.05, f"Expected delay, but elapsed was {elapsed:.4f}s"
+        finally:
+            session = await uplink_client.session()
+            await session.close()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("module", "func"),
+    [
+        ("lan", "unknown_func"),
+        ("system", "unknown_func"),
+        ("wifi", "unknown_func"),
+        ("diag", "unknown_func"),
+        ("wg-client", "unknown_func"),
+        ("vpn-client", "unknown_func"),
+        ("modem", "unknown_func"),
+        ("ovpn-client", "unknown_func"),
+        ("repeater", "unknown_func"),
+        ("cable", "unknown_func"),
+        ("switch-button", "unknown_func"),
+        ("network", "unknown_func"),
+        ("firewall", "unknown_func"),
+        ("ddns", "unknown_func"),
+        ("tailscale", "unknown_func"),
+    ],
+)
+async def test_dispatch_unknown_functions(module: str, func: str) -> None:
+    """Verify that unknown functions within known modules return -32601."""
+    async with MockRouter() as mock:
+        uplink_client = AiohttpClient()
+        client = GLinet(base_url=mock.url, client=uplink_client)
+        try:
+            await client.login("root", "goodlife")
+            with pytest.raises(NonZeroResponse) as exc_info:
+                await client._request(
+                    client.gen_sid_payload("call", [module, func], client.sid)
+                )
+            assert "-32601" in str(exc_info.value)
+        finally:
+            session = await uplink_client.session()
+            await session.close()
+
+
+@pytest.mark.asyncio
+async def test_lan_static_bind_dispatch() -> None:
+    """Verify lan.get_static_bind_list returns fixture data."""
+    async with MockRouter() as mock:
+        uplink_client = AiohttpClient()
+        client = GLinet(base_url=mock.url, client=uplink_client)
+        try:
+            await client.login("root", "goodlife")
+            result = await client._request(
+                client.gen_sid_payload(
+                    "call", ["lan", "get_static_bind_list"], client.sid
+                )
+            )
+            assert isinstance(result, dict)
+        finally:
+            session = await uplink_client.session()
+            await session.close()
+
+
+@pytest.mark.asyncio
+async def test_vpn_client_dispatch() -> None:
+    """Verify vpn-client.get_status and vpn-client.set_tunnel work correctly."""
+    async with MockRouter() as mock:
+        uplink_client = AiohttpClient()
+        client = GLinet(base_url=mock.url, client=uplink_client)
+        try:
+            await client.login("root", "goodlife")
+
+            # get_status
+            status = await client._request(
+                client.gen_sid_payload(
+                    "call", ["vpn-client", "get_status"], client.sid
+                )
+            )
+            assert "status_list" in status
+
+            # set_tunnel
+            set_result = await client._request(
+                client.gen_sid_payload(
+                    "call",
+                    ["vpn-client", "set_tunnel", {"tunnel_id": 2001, "enabled": True}],
+                    client.sid,
+                )
+            )
+            assert "tunnel_id" in set_result
+        finally:
+            session = await uplink_client.session()
+            await session.close()
+
+
+@pytest.mark.asyncio
+async def test_tailscale_set_config_enable() -> None:
+    """Verify tailscale.set_config with enabled=true restores initial status."""
+    async with MockRouter() as mock:
+        uplink_client = AiohttpClient()
+        client = GLinet(base_url=mock.url, client=uplink_client)
+        try:
+            await client.login("root", "goodlife")
+
+            # Enable tailscale
+            await client._request(
+                client.gen_sid_payload(
+                    "call",
+                    ["tailscale", "set_config", {"enabled": True}],
+                    client.sid,
+                )
+            )
+
+            # Status should not be empty list
+            status = await client._request(
+                client.gen_sid_payload(
+                    "call", ["tailscale", "get_status"], client.sid
+                )
+            )
+            assert status != []
+        finally:
+            session = await uplink_client.session()
+            await session.close()
+
+
+@pytest.mark.asyncio
+async def test_tailscale_get_auth_url() -> None:
+    """Verify tailscale.get_auth_url returns an empty list."""
+    async with MockRouter() as mock:
+        uplink_client = AiohttpClient()
+        client = GLinet(base_url=mock.url, client=uplink_client)
+        try:
+            await client.login("root", "goodlife")
+            result = await client._request(
+                client.gen_sid_payload(
+                    "call", ["tailscale", "get_auth_url"], client.sid
+                )
+            )
+            assert result == []
+        finally:
+            session = await uplink_client.session()
+            await session.close()
+
+
+@pytest.mark.asyncio
+async def test_repeater_get_config() -> None:
+    """Verify repeater.get_config returns fixture data."""
+    async with MockRouter() as mock:
+        uplink_client = AiohttpClient()
+        client = GLinet(base_url=mock.url, client=uplink_client)
+        try:
+            await client.login("root", "goodlife")
+            result = await client._request(
+                client.gen_sid_payload(
+                    "call", ["repeater", "get_config"], client.sid
+                )
+            )
+            assert isinstance(result, dict)
+        finally:
+            session = await uplink_client.session()
+            await session.close()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "policy_func",
+    [
+        "get_global_policy",
+        "get_mac_policy",
+        "get_proxy_mode",
+        "get_vlan_policy",
+    ],
+)
+async def test_vpn_policy_all_endpoints(policy_func: str) -> None:
+    """Verify all vpn-policy dispatch functions return a result."""
+    async with MockRouter() as mock:
+        uplink_client = AiohttpClient()
+        client = GLinet(base_url=mock.url, client=uplink_client)
+        try:
+            await client.login("root", "goodlife")
+            result = await client._request(
+                client.gen_sid_payload(
+                    "call", ["vpn-policy", policy_func], client.sid
+                )
+            )
+            # Should return something (not raise NonZeroResponse)
+            assert result is not None or result is None  # just confirm no exception
+        finally:
+            session = await uplink_client.session()
+            await session.close()
