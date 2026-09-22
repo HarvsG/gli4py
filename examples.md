@@ -119,7 +119,7 @@ Invocation: `await router.ping("8.8.8.8")` (tested in `tests/test_api.py::test_p
 
 Returns `bool` indicating whether the ICMP echo ping probe succeeded:
 ```python
-True   # Host is reachable
+True  # Host is reachable
 False  # Host is unreachable or timed out
 ```
 
@@ -654,7 +654,7 @@ Invocation: `await router.tailscale_connection_state()` (tested in `tests/test_a
 
 Maps `tailscale/get_status` state codes to `gli4py.enums.TailscaleConnection`:
 ```python
-TailscaleConnection.CONNECTED   # status == 3
+TailscaleConnection.CONNECTED  # status == 3
 # Other states:
 # TailscaleConnection.UNKNOWN   (0)
 # TailscaleConnection.STARTING  (1)
