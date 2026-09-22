@@ -59,6 +59,8 @@ coverage.xml
 *.py,cover
 .hypothesis/
 .pytest_cache/
+report.json
+GL.iNet SDK4.0 API-DOCS.html
 
 # Translations
 *.mo

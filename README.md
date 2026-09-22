@@ -54,6 +54,7 @@ GL.iNet routers are built on [OpenWrt](https://openwrt.org/), providing extensiv
 
 ```bash
 pip install gli-py
+
 ```
 
 ---
@@ -102,38 +103,51 @@ See [examples.md](examples.md) for sample API payloads and responses.
 ### Local Development
 
 1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/HarvsG/gli4py.git
-   cd gli4py
-   ```
+```bash
+git clone https://github.com/HarvsG/gli4py.git
+cd gli4py
+```
+
 
 2. **Ensure Python 3.11+ is installed**:
-   ```bash
-   python3 -V
-   ```
+```bash
+python3 -V
+
+```
+
 
 3. **Install dependencies with Poetry**:
-   ```bash
-   poetry install
-   ```
+```bash
+poetry install
+
+```
+
 
 4. **Install pre-commit hooks**:
-   ```bash
-   poetry run pre-commit install
-   ```
+```bash
+poetry run pre-commit install
+
+```
+
+
 
 ### Running Tests
 
-- **Unit Tests** (no router required, runs in CI):
-  ```bash
-  poetry run pytest -m "not live"
-  ```
+* **Unit Tests** (no router required, runs in CI):
+```bash
+poetry run pytest -m "not live"
 
-- **Hardware Tests** (requires a live GL.iNet router at `192.168.0.1`):
-  Create a file called `router_pwd` in the repository root containing your router password, then run:
-  ```bash
-  PYTHONDEVMODE="" PYTHONASYNCIODEBUG="" poetry run pytest
-  ```
+```
+
+
+* **Hardware Tests** (requires a live GL.iNet router at `192.168.0.1`):
+Create a file called `router_pwd` in the repository root containing your router password, then run:
+```bash
+PYTHONDEVMODE="" PYTHONASYNCIODEBUG="" poetry run pytest
+
+```
+
+
 
 ### Code Formatting & Linting
 
@@ -145,6 +159,7 @@ poetry run pre-commit run --all-files
 poetry run ruff check .
 poetry run ruff format --check .
 poetry run pylint $(git ls-files '*.py')
+
 ```
 
 ---
@@ -155,16 +170,68 @@ To test `gli4py` locally within a Home Assistant development container alongside
 
 1. Clone `gli4py` into your VS Code `/workspaces/` directory alongside `core` and `glinet`.
 2. Inside your Home Assistant virtual environment (`ha-env`), install the editable package:
-   ```bash
-   pip install -e /workspaces/gli4py
-   ```
+```bash
+pip install -e /workspaces/gli4py
+
+```
+
+
 3. Ensure the custom component has `"/workspaces/gli4py/"` in `"python.analysis.extraPaths"` in `.vscode/settings.json`.
+
+---
+
+## API Enumeration
+
+The repository includes `gli-enumerate` (or `python3 enumeration.py`), a utility to probe a GL.iNet router to discover which API modules and methods are supported by the device's firmware and produce a JSON report.
+
+Sensitive information (passwords, Wi-Fi keys, session tokens, serial numbers, and IP/MAC addresses) is automatically redacted from the output. By default, enumeration runs in a safe, read-only mode by skipping methods that alter router configuration or state.
+
+### Examples
+
+**Basic read-only probe:**
+
+```bash
+gli-enumerate -u 192.168.8.1 -p your_router_password
+```
+
+**Target a specific module or endpoint:**
+
+```bash
+gli-enumerate -u 192.168.8.1 -p your_router_password -m wifi
+gli-enumerate -u 192.168.8.1 -p your_router_password -e system.get_info
+```
+
+**Share report or subsection via pastebin:**
+
+```bash
+# Upload full report to paste.rs:
+gli-enumerate -u 192.168.8.1 -p your_router_password --quiet | curl --data-binary @- https://paste.rs
+
+# Or pipe a specific subsection using jq:
+gli-enumerate -u 192.168.8.1 -p your_router_password --quiet | jq '.modules.wifi' | curl --data-binary @- https://paste.rs
+```
+
+**Probe all endpoints (including write methods):**
+
+> **Caution:** Probing write methods *will* alter the router's configuration or state.
+
+```bash
+gli-enumerate -u 192.168.8.1 -p your_router_password --no-read-only
+```
+
+For all available flags and options, run:
+
+```bash
+gli-enumerate --help
+# or from a repository checkout:
+python3 enumeration.py --help
+```
 
 ---
 
 ## Related Projects
 
-- [Home Assistant GL-iNet v4 Integration (`ha-glinet4-integration`)](https://github.com/HarvsG/ha-glinet4-integration) - Custom component integrating GL.iNet firmware 4.x routers into Home Assistant.
+* [Home Assistant GL-iNet v4 Integration (`ha-glinet4-integration`)](https://github.com/HarvsG/ha-glinet4-integration) - Custom component integrating GL.iNet firmware 4.x routers into Home Assistant.
 
 ---
 
