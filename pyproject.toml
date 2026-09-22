@@ -29,12 +29,21 @@ mypy = ">=1.15.0"
 types-passlib = ">=1.7.7"
 
 [tool.mypy]
+strict = true
 python_version = "3.14"
-check_untyped_defs = true
-disallow_incomplete_defs = true
-warn_unused_ignores = true
-ignore_missing_imports = true
 files = ["gli4py"]
+
+[[tool.mypy.overrides]]
+module = ["uplink.*", "passlib.*"]
+ignore_missing_imports = true
+disallow_subclassing_any = false
+disallow_untyped_decorators = false
+disallow_untyped_calls = false
+
+[[tool.mypy.overrides]]
+module = "gli4py.glinet"
+disallow_subclassing_any = false
+disallow_untyped_decorators = false
 
 [build-system]
 requires = ["poetry-core"]

@@ -2,7 +2,7 @@
 
 import asyncio
 import hashlib
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 from passlib.hash import md5_crypt, sha256_crypt, sha512_crypt
 from requests import Response, exceptions
@@ -49,23 +49,23 @@ class GLinet(Consumer):
         super().__init__(client=client, **kwargs)
 
     @staticmethod
-    def gen_sid_payload(method: str, params: list, sid: str | None = None) -> dict:
+    def gen_sid_payload(
+        method: str, params: list[Any], sid: str | None = None
+    ) -> dict[str, Any]:
         """Generates a payload for the GL-inet API with a session ID."""
-        # headers = {'glinet': 1}
-        params.insert(0, sid)
-        payload = {
+        params_with_sid = [sid] + params if sid is not None else list(params)
+        payload: dict[str, Any] = {
             "method": method,
             "jsonrpc": "2.0",
-            "params": params,
+            "params": params_with_sid,
             "id": 0,
         }
         return payload
 
     @staticmethod
-    def gen_no_auth_payload(method: str, params: dict) -> dict:
+    def gen_no_auth_payload(method: str, params: dict[str, Any]) -> dict[str, Any]:
         """Generates a payload for the GL-inet API without session ID authentication."""
-        # headers = {'glinet': 1}
-        payload = {
+        payload: dict[str, Any] = {
             "method": method,
             "jsonrpc": "2.0",
             "params": params,
@@ -89,17 +89,17 @@ class GLinet(Consumer):
         """Base method to make a request to the GL-inet API with a longer timeout."""
         raise NotImplementedError
 
-    async def _challenge(self, username: str) -> dict:
+    async def _challenge(self, username: str) -> dict[str, Any]:
         """Requests a challenge from the GL-inet API to start the login process."""
         challenge_data = self.gen_no_auth_payload("challenge", {"username": username})
-        return await self._request(challenge_data)
+        return cast(dict[str, Any], await self._request(challenge_data))
 
-    async def _get_sid(self, username: str, hsh: str) -> dict:
+    async def _get_sid(self, username: str, hsh: str) -> dict[str, Any]:
         """Requests a session ID from the GL-inet API using the provided username and hash."""
         login_data = self.gen_no_auth_payload(
             "login", {"username": username, "hash": hsh}
         )
-        return await self._request(login_data)
+        return cast(dict[str, Any], await self._request(login_data))
 
     async def router_reachable(self, username: str = "root") -> bool:
         """Checks if the router is reachable by attempting to get a challenge."""
@@ -126,9 +126,13 @@ class GLinet(Consumer):
         if alg == 1:  # MD5
             cipher_password = md5_crypt.using(salt=salt).hash(password)
         elif alg == 5:  # SHA-256
-            cipher_password = sha256_crypt.using(salt=salt, rounds=5000).hash(password)
+            cipher_password = sha256_crypt.using(  # type: ignore[no-untyped-call]
+                salt=salt, rounds=5000
+            ).hash(password)
         elif alg == 6:  # SHA-512
-            cipher_password = sha512_crypt.using(salt=salt, rounds=5000).hash(password)
+            cipher_password = sha512_crypt.using(  # type: ignore[no-untyped-call]
+                salt=salt, rounds=5000
+            ).hash(password)
         else:
             raise ValueError(
                 "Router requested unsupported hashing algorithm for cipher password"
@@ -177,10 +181,13 @@ class GLinet(Consumer):
                 f"An unexpected error of type {type(e).__name__} has occurred during login"
             ) from e
 
-    async def router_info(self) -> dict:
+    async def router_info(self) -> dict[str, Any]:
         """Retrieves information about the router, requires authentication."""
-        response = await self._request(
-            self.gen_sid_payload("call", ["system", "get_info"], self.sid)
+        response = cast(
+            dict[str, Any],
+            await self._request(
+                self.gen_sid_payload("call", ["system", "get_info"], self.sid)
+            ),
         )
 
         # Sanity check for firmware version
@@ -192,31 +199,40 @@ class GLinet(Consumer):
 
         return response
 
-    async def modem_info(self) -> dict:
+    async def modem_info(self) -> dict[str, Any]:
         """Retrieves information about the modems, requires authentication."""
-        response = await self._request(
-            self.gen_sid_payload("call", ["modem", "get_info"], self.sid)
+        return cast(
+            dict[str, Any],
+            await self._request(
+                self.gen_sid_payload("call", ["modem", "get_info"], self.sid)
+            ),
         )
-        return response
 
-    async def modem_sim_info(self) -> dict:
+    async def modem_sim_info(self) -> dict[str, Any]:
         """Retrieves information about the modems, requires authentication."""
-        response = await self._request(
-            self.gen_sid_payload("call", ["modem", "get_sim_info"], self.sid)
+        return cast(
+            dict[str, Any],
+            await self._request(
+                self.gen_sid_payload("call", ["modem", "get_sim_info"], self.sid)
+            ),
         )
-        return response
 
-    async def modem_sim_signal(self) -> dict:
+    async def modem_sim_signal(self) -> dict[str, Any]:
         """Retrieves information about the modems, requires authentication."""
-        response = await self._request(
-            self.gen_sid_payload("call", ["modem", "get_sim_signal"], self.sid)
+        return cast(
+            dict[str, Any],
+            await self._request(
+                self.gen_sid_payload("call", ["modem", "get_sim_signal"], self.sid)
+            ),
         )
-        return response
 
     async def router_get_status(self) -> dict[str, list[dict[str, Any]]]:
         """Retrieves the status of the router, requires authentication."""
-        response: dict[str, list[dict[str, Any]]] = await self._request(
-            self.gen_sid_payload("call", ["system", "get_status"], self.sid)
+        response = cast(
+            dict[str, list[dict[str, Any]]],
+            await self._request(
+                self.gen_sid_payload("call", ["system", "get_status"], self.sid)
+            ),
         )
 
         # remove wifi passwords
@@ -225,24 +241,33 @@ class GLinet(Consumer):
                 response["wifi"][i]["passwd"] = None
         return response
 
-    async def router_get_load(self) -> dict:
+    async def router_get_load(self) -> dict[str, Any]:
         """Retrieves the load information of the router, requires authentication."""
-        return await self._request(
-            self.gen_sid_payload("call", ["system", "get_load"], self.sid)
+        return cast(
+            dict[str, Any],
+            await self._request(
+                self.gen_sid_payload("call", ["system", "get_load"], self.sid)
+            ),
         )
 
-    async def router_mac(self) -> dict:
+    async def router_mac(self) -> dict[str, Any]:
         """Retrieves the MAC address of the router, requires authentication."""
-        return await self._request(
-            self.gen_sid_payload("call", ["macclone", "get_mac"], self.sid)
+        return cast(
+            dict[str, Any],
+            await self._request(
+                self.gen_sid_payload("call", ["macclone", "get_mac"], self.sid)
+            ),
         )
 
-    async def router_reboot(self, delay: int = 0) -> dict:
+    async def router_reboot(self, delay: int = 0) -> dict[str, Any]:
         """Reboots the router, requires authentication."""
-        return await self._request(
-            self.gen_sid_payload(
-                "call", ["system", "reboot", {"delay": delay}], self.sid
-            )
+        return cast(
+            dict[str, Any],
+            await self._request(
+                self.gen_sid_payload(
+                    "call", ["system", "reboot", {"delay": delay}], self.sid
+                )
+            ),
         )
 
     async def ping(self, address: str = "8.8.8.8") -> bool:
@@ -252,51 +277,66 @@ class GLinet(Consumer):
         result = await self._request_long_timeout(
             self.gen_sid_payload("call", ["diag", "ping", {"addr": address}], self.sid)
         )
-        return result != []
+        return bool(result != [])
 
-    async def connected_to_internet(self) -> dict:
+    async def connected_to_internet(self) -> dict[str, Any]:
         """Is the internet reachable
         {"detected":2,"dns":["82.15.176.1"],"gateway":"82.15.178.1","valid":False,"netmask":"255.255.254.0","ip":"82.15.178.44"}
         upper-level DHCP server status [0: disable; 1:enabled and have pointed the gateway to the bypass route; 2: enabled; 3：the cable is not connected]
         """
-        return await self._request(
-            self.gen_sid_payload("call", ["edgerouter", "get_status"], self.sid)
+        return cast(
+            dict[str, Any],
+            await self._request(
+                self.gen_sid_payload("call", ["edgerouter", "get_status"], self.sid)
+            ),
         )
 
-    async def list_all_clients(self) -> dict:
+    async def list_all_clients(self) -> dict[str, Any]:
         """Gets all clients connected to the router."""
-        return await self._request(
-            self.gen_sid_payload("call", ["clients", "get_list"], self.sid)
+        return cast(
+            dict[str, Any],
+            await self._request(
+                self.gen_sid_payload("call", ["clients", "get_list"], self.sid)
+            ),
         )
 
-    async def list_static_clients(self) -> dict:
+    async def list_static_clients(self) -> dict[str, Any]:
         """Gets all static clients connected to the router."""
-        return await self._request(
-            self.gen_sid_payload("call", ["lan", "get_static_bind_list"], self.sid)
+        return cast(
+            dict[str, Any],
+            await self._request(
+                self.gen_sid_payload("call", ["lan", "get_static_bind_list"], self.sid)
+            ),
         )
 
-    async def connected_clients(self) -> dict:
+    async def connected_clients(self) -> dict[str, dict[str, Any]]:
         """gets all connected clients asyncronously.
         Returns a list of dictionaries with key being the mac addr and the dictionary
         being client data
         """
-        clients = {}
+        clients: dict[str, dict[str, Any]] = {}
         all_clients = await self.list_all_clients()
         for client in all_clients["clients"]:
             if client["online"] is True:
                 clients[client["mac"]] = client
         return clients
 
-    async def _wifi_config_get(self) -> dict:
+    async def _wifi_config_get(self) -> dict[str, Any]:
         """Retrieves the WiFi configuration from the router."""
-        return await self._request(
-            self.gen_sid_payload("call", ["wifi", "get_config"], self.sid)
+        return cast(
+            dict[str, Any],
+            await self._request(
+                self.gen_sid_payload("call", ["wifi", "get_config"], self.sid)
+            ),
         )
 
-    async def _wifi_config_set(self, config: dict) -> dict:
+    async def _wifi_config_set(self, config: dict[str, Any]) -> dict[str, Any]:
         """Sets the WiFi configuration on the router."""
-        return await self._request(
-            self.gen_sid_payload("call", ["wifi", "set_config", config], self.sid)
+        return cast(
+            dict[str, Any],
+            await self._request(
+                self.gen_sid_payload("call", ["wifi", "set_config", config], self.sid)
+            ),
         )
 
     async def wifi_ifaces_get(
@@ -354,7 +394,9 @@ class GLinet(Consumer):
             for iface in dev.get("ifaces")
         }
 
-    async def wifi_iface_set_enabled(self, iface_name: str, enabled: bool) -> dict:
+    async def wifi_iface_set_enabled(
+        self, iface_name: str, enabled: bool
+    ) -> dict[str, Any]:
         """enable / disable wifi interface by name as found by wifi_ifaces_get()."""
         ifaces = await self.wifi_ifaces_get()
         if iface_name in ifaces:
@@ -367,7 +409,7 @@ class GLinet(Consumer):
 
     async def wireguard_client_list(self) -> list[dict[str, Any]]:
         """Gets the list of WireGuard clients."""
-        response: dict = await self._request(
+        response: dict[str, Any] = await self._request(
             self.gen_sid_payload("call", ["wg-client", "get_all_config_list"], self.sid)
         )
         configs: list[dict[str, Any]] = []
@@ -402,8 +444,11 @@ class GLinet(Consumer):
             else "wg-client"
         )
 
-        response = await self._request(
-            self.gen_sid_payload("call", [target_call, "get_status"], self.sid)
+        response = cast(
+            dict[str, Any],
+            await self._request(
+                self.gen_sid_payload("call", [target_call, "get_status"], self.sid)
+            ),
         )
 
         if self._firmware_version < NEW_VPN_CLIENT_VERSION:
@@ -412,24 +457,24 @@ class GLinet(Consumer):
             # We will wrap it in an array to match the new format.
             return [response]
 
-        return response.get("status_list", [])
+        return cast(list[dict[str, Any]], response.get("status_list", []))
 
     async def wireguard_client_start(
         self, group_id: int, peer_or_tunnel_id: int
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Starts a WireGuard client with the specified tunnel ID."""
         return await self._wireguard_set_client_enabled(
             group_id, peer_or_tunnel_id, True
         )
 
-    async def wireguard_client_stop(self, peer_or_tunnel_id: int) -> dict:
+    async def wireguard_client_stop(self, peer_or_tunnel_id: int) -> dict[str, Any]:
         """Stops the WireGuard client with the specified tunnel ID."""
         # Pass -1 for group_id and peer_id as they are not needed to stop the client
         return await self._wireguard_set_client_enabled(-1, peer_or_tunnel_id, False)
 
     async def _wireguard_set_client_enabled(
         self, group_id: int, peer_or_tunnel_id: int, enabled: bool
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Sets the WireGuard client enabled state."""
         if self._firmware_version is None:
             await self.router_info()
@@ -438,75 +483,102 @@ class GLinet(Consumer):
         # If version is 4.8 or greater use vpn-client otherwise use wg-client
         if self._firmware_version >= NEW_VPN_CLIENT_VERSION:
             tunnel_id = peer_or_tunnel_id
-            return await self._request(
-                self.gen_sid_payload(
-                    "call",
-                    [
-                        "vpn-client",
-                        "set_tunnel",
-                        {"enabled": enabled, "tunnel_id": tunnel_id},
-                    ],
-                    self.sid,
-                )
+            return cast(
+                dict[str, Any],
+                await self._request(
+                    self.gen_sid_payload(
+                        "call",
+                        [
+                            "vpn-client",
+                            "set_tunnel",
+                            {"enabled": enabled, "tunnel_id": tunnel_id},
+                        ],
+                        self.sid,
+                    )
+                ),
             )
 
         # Not version 4.8 or greater so use wg-client
         # If enabled, call the start method with group_id and peer_id
         peer_id = peer_or_tunnel_id
         if enabled:
-            return await self._request(
-                self.gen_sid_payload(
-                    "call",
-                    ["wg-client", "start", {"group_id": group_id, "peer_id": peer_id}],
-                    self.sid,
-                )
+            return cast(
+                dict[str, Any],
+                await self._request(
+                    self.gen_sid_payload(
+                        "call",
+                        [
+                            "wg-client",
+                            "start",
+                            {"group_id": group_id, "peer_id": peer_id},
+                        ],
+                        self.sid,
+                    )
+                ),
             )
 
         # Not enabled, call the stop method
-        return await self._request(
-            self.gen_sid_payload("call", ["wg-client", "stop"], self.sid)
+        return cast(
+            dict[str, Any],
+            await self._request(
+                self.gen_sid_payload("call", ["wg-client", "stop"], self.sid)
+            ),
         )
 
-    async def _tailscale_get_config(self) -> dict | bool:
+    async def _tailscale_get_config(self) -> dict[str, Any] | bool:
         """
         {'wan_enabled': False, 'lan_ip': '192.168.0.0/24', 'enabled': False, 'lan_enabled': True}
         {'detected': 2, 'dns': ['88.88.88.88'], 'gateway': '88.88.88.88', 'valid': False, 'netmask': '255.255.254.0', 'ip': '88.88.88.88'}
         If tailscale is not available on the the device this will error.
         """
         try:
-            result = await self._request(
-                self.gen_sid_payload("call", ["tailscale", "get_config"], self.sid)
+            result = cast(
+                dict[str, Any],
+                await self._request(
+                    self.gen_sid_payload("call", ["tailscale", "get_config"], self.sid)
+                ),
             )
         except APIClientError:
             return False
         return result
 
-    async def _tailscale_set_config(self, config_updates: dict[str, Any]) -> dict:
+    async def _tailscale_set_config(
+        self, config_updates: dict[str, Any]
+    ) -> dict[str, Any]:
         """Updates the Tailscale configuration with the provided updates."""
-        current_config: dict[str, Any] = await self._request(
-            self.gen_sid_payload("call", ["tailscale", "get_config"], self.sid)
+        current_config = cast(
+            dict[str, Any],
+            await self._request(
+                self.gen_sid_payload("call", ["tailscale", "get_config"], self.sid)
+            ),
         )
         new_config = current_config | config_updates
-        return await self._request(
-            self.gen_sid_payload(
-                "call", ["tailscale", "set_config", new_config], self.sid
-            )
+        return cast(
+            dict[str, Any],
+            await self._request(
+                self.gen_sid_payload(
+                    "call", ["tailscale", "set_config", new_config], self.sid
+                )
+            ),
         )
 
-    async def _tailscale_status(self) -> dict:
+    async def _tailscale_status(self) -> dict[str, Any] | list[Any]:
         """
         {'login_name': 'HarvsG@github', 'status': 3, 'address_v4': '100.92.1.100'}
         {'detected': 2, 'dns': ['88.88.88.89'], 'gateway': '88.88.88.88', 'valid': False, 'netmask': '255.255.254.0', 'ip': '88.88.88.88'}
         If disconnected or not configured, returns []
         """
-        return await self._request(
-            self.gen_sid_payload("call", ["tailscale", "get_status"], self.sid)
+        return cast(
+            dict[str, Any] | list[Any],
+            await self._request(
+                self.gen_sid_payload("call", ["tailscale", "get_status"], self.sid)
+            ),
         )
 
     async def tailscale_connection_state(self) -> TailscaleConnection:
         """Retrieves the Tailscale connection state."""
-        state: dict = dict(await self._tailscale_status())
-        if not state:
+        state = await self._tailscale_status()
+        if not state or isinstance(state, list):
             return TailscaleConnection.DISCONNECTED
         return TailscaleConnection(state.get("status", 0))
 
@@ -527,7 +599,7 @@ class GLinet(Consumer):
             raise ConnectionError(
                 "Tailscale attempted to connect 10 times with no success"
             )
-        response: dict | list = await self._tailscale_status()
+        response: dict[str, Any] | list[Any] = await self._tailscale_status()
         if isinstance(response, list):
             if response == []:
                 await self._tailscale_set_config({"enabled": True})
@@ -562,7 +634,7 @@ class GLinet(Consumer):
             raise ConnectionError(
                 "Tailscale attempted to disconnect 10 times with no success"
             )
-        response: dict | list = await self._tailscale_status()
+        response: dict[str, Any] | list[Any] = await self._tailscale_status()
         if isinstance(response, list):
             if response == []:
                 return True
