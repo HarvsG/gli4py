@@ -59,7 +59,7 @@ except ImportError:
 NEW_VPN_CLIENT_VERSION = Version(4, 8, 0, 0)
 
 
-class GLinet(Consumer):  # type: ignore[misc]
+class GLinet(Consumer):
     """A Python Client for the GL-inet API."""
 
     _firmware_version: Version | None = None
@@ -111,18 +111,18 @@ class GLinet(Consumer):  # type: ignore[misc]
         }
         return payload
 
-    @response_handler(raise_for_status)  # type: ignore[misc]
-    @json  # type: ignore[misc]
-    @post("")  # type: ignore[misc]
-    @timeout(2)  # type: ignore[misc]
+    @response_handler(raise_for_status)
+    @json
+    @post("")
+    @timeout(2)
     async def _request(self, data: Body) -> object:
         """Base method to make a request to the GL-inet API."""
         raise NotImplementedError
 
-    @response_handler(raise_for_status)  # type: ignore[misc]
-    @json  # type: ignore[misc]
-    @post("")  # type: ignore[misc]
-    @timeout(5)  # type: ignore[misc]
+    @response_handler(raise_for_status)
+    @json
+    @post("")
+    @timeout(5)
     async def _request_long_timeout(self, data: Body) -> object:
         """Base method to make a request to the GL-inet API with a longer timeout."""
         raise NotImplementedError

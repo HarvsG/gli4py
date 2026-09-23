@@ -38,6 +38,12 @@ warn_unused_ignores = true
 ignore_missing_imports = true
 files = ["gli4py"]
 
+[[tool.mypy.overrides]]
+module = "gli4py.glinet"
+disallow_subclassing_any = false
+disallow_untyped_decorators = false
+disallow_untyped_calls = false
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
