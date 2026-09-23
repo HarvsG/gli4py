@@ -218,7 +218,9 @@ async def test_wireguard_client_state(router: GLinet) -> None:
 
 
 @pytest.mark.disruptive
-async def test_wireguard_start(router: GLinet, disruptive_tests: bool) -> None:
+async def test_wireguard_start(
+    router: GLinet, disruptive_tests: bool, is_live: bool
+) -> None:
     """Test starting the WireGuard client."""
     if not disruptive_tests:
         pytest.skip("Disruptive tests are disabled (pass --disruptive-tests to run)")
@@ -249,20 +251,23 @@ async def test_wireguard_start(router: GLinet, disruptive_tests: bool) -> None:
     else:
         assert result == []
 
-    # Wait for the client to connect or timeout with 10 seconds
-    for i in range(10):
+    # Wait for the client to connect with a longer timeout on live hardware
+    max_attempts = 25 if is_live else 10
+    for i in range(max_attempts):
         status_list = await router.wireguard_client_state()
         first_status = status_list[0]
-        if (
-            "status" in first_status
-            and first_status["status"] == 1
-            and "enabled" in first_status
-            and first_status["enabled"]
-        ):
-            break
+        print(f"WireGuard start wait {i + 1}/{max_attempts}: {first_status}")
+        # On newer firmware (>= 4.8), both enabled and status==1 indicate connection.
+        # On older firmware (< 4.8), 'enabled' is absent from wg-client status, so check status==1.
+        if parsed_version >= NEW_VPN_CLIENT_VERSION:
+            if first_status.get("status") == 1 and first_status.get("enabled"):
+                break
+        else:
+            if first_status.get("status") == 1:
+                break
         await asyncio.sleep(1)
 
-        if i == 9:
+        if i == max_attempts - 1:
             pytest.fail("WireGuard client took too long to connect.")
 
 
@@ -404,8 +409,13 @@ async def test_router_reboot(
     print(response)
     print(f"waiting `{reboot_wait_time}s` for router to shutdown")
     await asyncio.sleep(reboot_wait_time)
-    while not await router.router_reachable():
+    wake_attempts = 120 if is_live else 50
+    for _ in range(wake_attempts):
+        if await router.router_reachable():
+            break
         print("waiting for router to wake")
         await asyncio.sleep(1.0 if is_live else 0.05)
+    else:
+        pytest.fail("Router did not wake up after reboot.")
     with pytest.raises(NonZeroResponse):
         await router.router_info()

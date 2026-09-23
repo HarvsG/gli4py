@@ -6,7 +6,7 @@ import asyncio
 import hashlib
 from typing import TYPE_CHECKING, Literal, TypeVar
 
-from aiohttp import ClientSession
+from aiohttp import ClientError, ClientSession
 from passlib.hash import md5_crypt, sha256_crypt, sha512_crypt
 from requests import exceptions
 from semver import Version
@@ -46,6 +46,7 @@ if TYPE_CHECKING:
         StaticBindListResponse,
         SystemInfoResponse,
         SystemLoadResponse,
+        SystemPingResult,
         TailscaleConfigResponse,
         TailscaleSetConfigParams,
         TailscaleStatusResponse,
@@ -161,7 +162,12 @@ class GLinet(Consumer):
             res = await self._challenge(username)
             if res:
                 return True
-        except APIClientError:
+        except (
+            APIClientError,
+            ClientError,
+            TimeoutError,
+            exceptions.RequestException,
+        ):
             return False
         return False
 
@@ -304,9 +310,16 @@ class GLinet(Consumer):
 
     async def ping(self, address: str = "8.8.8.8") -> bool:
         """Returns True if ping probe succeeded or False if unsuccessful."""
-        result = await self._request_long_timeout(
+        result: SystemPingResult = await self._request_long_timeout(
             self.gen_sid_payload("call", ["diag", "ping", {"addr": address}], self.sid)
         )
+        if isinstance(result, dict):
+            ping_output = result.get("ping_result", "")
+            return bool(
+                ping_output
+                and "100% packet loss" not in ping_output
+                and ("packets received" in ping_output or "bytes from" in ping_output)
+            )
         return isinstance(result, list) and len(result) > 0
 
     async def connected_to_internet(self) -> EdgeRouterStatusResponse:

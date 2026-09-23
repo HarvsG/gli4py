@@ -88,6 +88,15 @@ class PingParams(TypedDict):
     addr: str
 
 
+class SystemPingResponse(TypedDict, total=False):
+    """Response payload for diag.ping call."""
+
+    ping_result: str
+
+
+SystemPingResult: TypeAlias = SystemPingResponse | list[str]
+
+
 class EdgeRouterStatusResponse(TypedDict):
     """Response payload for edgerouter.get_status endpoint."""
 
@@ -849,6 +858,8 @@ __all__ = [
     "SystemHardwareFeature",
     "SystemInfoResponse",
     "SystemLoadResponse",
+    "SystemPingResponse",
+    "SystemPingResult",
     "SystemSoftwareFeature",
     "SystemStatusClient",
     "SystemStatusMetrics",
