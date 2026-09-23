@@ -3,8 +3,8 @@
 [![Tests](https://github.com/HarvsG/gli4py/actions/workflows/tests.yml/badge.svg)](https://github.com/HarvsG/gli4py/actions/workflows/tests.yml)
 [![Pylint](https://github.com/HarvsG/gli4py/actions/workflows/pylint.yml/badge.svg)](https://github.com/HarvsG/gli4py/actions/workflows/pylint.yml)
 [![CodeQL](https://github.com/HarvsG/gli4py/actions/workflows/codeql.yml/badge.svg)](https://github.com/HarvsG/gli4py/actions/workflows/codeql.yml)
-[![PyPI Version](https://img.shields.io/pypi/v/gli-py.svg?color=blue)](https://pypi.org/project/gli-py/)
-[![Python Versions](https://img.shields.io/pypi/pyversions/gli-py.svg)](https://pypi.org/project/gli-py/)
+[![PyPI Version](https://img.shields.io/pypi/v/gli4py.svg?color=blue)](https://pypi.org/project/gli4py/)
+[![Python Versions](https://img.shields.io/pypi/pyversions/gli4py.svg)](https://pypi.org/project/gli4py/)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
@@ -53,8 +53,7 @@ GL.iNet routers are built on [OpenWrt](https://openwrt.org/), providing extensiv
 ## Installation
 
 ```bash
-pip install gli-py
-
+pip install gli4py
 ```
 
 ---
@@ -112,24 +111,23 @@ cd gli4py
 2. **Ensure Python 3.11+ is installed**:
 ```bash
 python3 -V
-
 ```
 
+3. **Install Poetry** (if not already installed):
+```bash
+pipx install poetry
+# Or via official installer: curl -sSL https://install.python-poetry.org | python3 -
+```
 
-3. **Install dependencies with Poetry**:
+4. **Install dependencies with Poetry**:
 ```bash
 poetry install
-
 ```
 
-
-4. **Install pre-commit hooks**:
+5. **Install pre-commit hooks**:
 ```bash
 poetry run pre-commit install
-
 ```
-
-
 
 ### Running Tests
 
@@ -152,8 +150,6 @@ poetry run pytest --live --url 192.168.8.1 --disruptive-tests
 ```
 > **Note**: Router URL and password can also be configured via environment variables (`ROUTER_URL`, `ROUTER_PASSWORD`). In most development environments where `PYTHONASYNCIODEBUG` or `PYTHONDEVMODE` is set, prefix with `PYTHONDEVMODE="" PYTHONASYNCIODEBUG=""`.
 
-
-
 ### Code Formatting & Linting
 
 ```bash
@@ -164,7 +160,6 @@ poetry run pre-commit run --all-files
 poetry run ruff check .
 poetry run ruff format --check .
 poetry run pylint $(git ls-files '*.py')
-
 ```
 
 ---
@@ -174,20 +169,18 @@ poetry run pylint $(git ls-files '*.py')
 To test `gli4py` locally within a Home Assistant development container alongside the custom component:
 
 1. Clone `gli4py` into your VS Code `/workspaces/` directory alongside `core` and `glinet`.
+   > **Tip**: In VS Code, press `Ctrl` + `Shift` + `P` (or `Cmd` + `Shift` + `P` on macOS) and choose **Workspaces: Add Folder to Workspace...** to add `/workspaces/gli4py` directly to your multi-root workspace alongside `core` and `glinet`.
 2. Inside your Home Assistant virtual environment (`ha-env`), install the editable package:
 ```bash
 pip install -e /workspaces/gli4py
-
 ```
-
-
 3. Ensure the custom component has `"/workspaces/gli4py/"` in `"python.analysis.extraPaths"` in `.vscode/settings.json`.
 
 ---
 
 ## API Enumeration
 
-The repository includes `gli-enumerate` (or `python3 enumeration.py`), a utility to probe a GL.iNet router to discover which API modules and methods are supported by the device's firmware and produce a JSON report.
+The repository includes `gli-enumerate` (or `python3 -m gli4py.enumeration`), a utility to probe a GL.iNet router to discover which API modules and methods are supported by the device's firmware and produce a JSON report.
 
 Sensitive information (passwords, Wi-Fi keys, session tokens, serial numbers, and IP/MAC addresses) is automatically redacted from the output. By default, enumeration runs in a safe, read-only mode by skipping methods that alter router configuration or state.
 
@@ -229,7 +222,7 @@ For all available flags and options, run:
 ```bash
 gli-enumerate --help
 # or from a repository checkout:
-python3 enumeration.py --help
+python3 -m gli4py.enumeration --help
 ```
 
 ---
