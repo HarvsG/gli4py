@@ -1,14 +1,25 @@
 """This module provides an asynchronous client for the GL-inet router API using uplink."""
 
+from __future__ import annotations
+
 import asyncio
 import hashlib
-from typing import TYPE_CHECKING, Literal, cast
+from typing import TYPE_CHECKING, Literal, TypeVar
 
 from aiohttp import ClientSession
 from passlib.hash import md5_crypt, sha256_crypt, sha512_crypt
 from requests import exceptions
 from semver import Version
-from uplink import AiohttpClient, Body, Consumer, json, post, response_handler, timeout
+from uplink import (
+    AiohttpClient,
+    Body,
+    Consumer,
+    args,
+    json,
+    post,
+    response_handler,
+    timeout,
+)
 
 from gli4py.models import TailscaleConnection
 
@@ -55,8 +66,11 @@ try:
 except ImportError:
     pass
 
+
 # typical base url http://192.168.8.1/rpc
 NEW_VPN_CLIENT_VERSION = Version(4, 8, 0, 0)
+
+T = TypeVar("T")
 
 
 class GLinet(Consumer):
@@ -87,7 +101,7 @@ class GLinet(Consumer):
     @staticmethod
     def gen_sid_payload(
         method: str, params: list[object], sid: str | None = None
-    ) -> "JsonRpcRequestPayload":
+    ) -> JsonRpcRequestPayload:
         """Generates a payload for the GL-inet API with a session ID."""
         params.insert(0, sid)
         payload: JsonRpcRequestPayload = {
@@ -101,7 +115,7 @@ class GLinet(Consumer):
     @staticmethod
     def gen_no_auth_payload(
         method: str, params: dict[str, object] | list[object]
-    ) -> "JsonRpcRequestPayload":
+    ) -> JsonRpcRequestPayload:
         """Generates a payload for the GL-inet API without session ID authentication."""
         payload: JsonRpcRequestPayload = {
             "method": method,
@@ -112,32 +126,34 @@ class GLinet(Consumer):
         return payload
 
     @response_handler(raise_for_status)
+    @args(data=Body)
     @json
     @post("")
     @timeout(2)
-    async def _request(self, data: Body) -> object:
+    async def _request(self, data: object) -> T:
         """Base method to make a request to the GL-inet API."""
         raise NotImplementedError
 
     @response_handler(raise_for_status)
+    @args(data=Body)
     @json
     @post("")
     @timeout(5)
-    async def _request_long_timeout(self, data: Body) -> object:
+    async def _request_long_timeout(self, data: object) -> T:
         """Base method to make a request to the GL-inet API with a longer timeout."""
         raise NotImplementedError
 
-    async def _challenge(self, username: str) -> "ChallengeResponse":
+    async def _challenge(self, username: str) -> ChallengeResponse:
         """Requests a challenge from the GL-inet API to start the login process."""
         challenge_data = self.gen_no_auth_payload("challenge", {"username": username})
-        return cast("ChallengeResponse", await self._request(challenge_data))
+        return await self._request(challenge_data)
 
-    async def _get_sid(self, username: str, hsh: str) -> "LoginResponse":
+    async def _get_sid(self, username: str, hsh: str) -> LoginResponse:
         """Requests a session ID from the GL-inet API using the provided username and hash."""
         login_data = self.gen_no_auth_payload(
             "login", {"username": username, "hash": hsh}
         )
-        return cast("LoginResponse", await self._request(login_data))
+        return await self._request(login_data)
 
     async def router_reachable(self, username: str = "root") -> bool:
         """Checks if the router is reachable by attempting to get a challenge."""
@@ -150,8 +166,8 @@ class GLinet(Consumer):
         return False
 
     @staticmethod
-    # pylint: disable=too-many-arguments,too-many-positional-arguments
     def _compute_hash(
+        *,
         alg: int,
         salt: str,
         nonce: str,
@@ -195,7 +211,13 @@ class GLinet(Consumer):
 
             # Run the heavy, blocking cryptography operations in a separate thread
             hsh = await asyncio.to_thread(
-                self._compute_hash, alg, salt, nonce, hash_method, username, password
+                self._compute_hash,
+                alg=alg,
+                salt=salt,
+                nonce=nonce,
+                hash_method=hash_method,
+                username=username,
+                password=password,
             )
 
             # Step4: Get sid by login
@@ -215,13 +237,10 @@ class GLinet(Consumer):
                 f"An unexpected error of type {type(e).__name__} has occurred during login"
             ) from e
 
-    async def router_info(self) -> "SystemInfoResponse":
+    async def router_info(self) -> SystemInfoResponse:
         """Retrieves information about the router, requires authentication."""
-        response = cast(
-            "SystemInfoResponse",
-            await self._request(
-                self.gen_sid_payload("call", ["system", "get_info"], self.sid)
-            ),
+        response: SystemInfoResponse = await self._request(
+            self.gen_sid_payload("call", ["system", "get_info"], self.sid)
         )
 
         # Sanity check for firmware version
@@ -233,40 +252,28 @@ class GLinet(Consumer):
 
         return response
 
-    async def modem_info(self) -> "ModemInfoResponse":
+    async def modem_info(self) -> ModemInfoResponse:
         """Retrieves information about the modems, requires authentication."""
-        return cast(
-            "ModemInfoResponse",
-            await self._request(
-                self.gen_sid_payload("call", ["modem", "get_info"], self.sid)
-            ),
+        return await self._request(
+            self.gen_sid_payload("call", ["modem", "get_info"], self.sid)
         )
 
-    async def modem_sim_info(self) -> list["ModemSimInfoEntry"]:
+    async def modem_sim_info(self) -> list[ModemSimInfoEntry]:
         """Retrieves information about the modems, requires authentication."""
-        return cast(
-            list["ModemSimInfoEntry"],
-            await self._request(
-                self.gen_sid_payload("call", ["modem", "get_sim_info"], self.sid)
-            ),
+        return await self._request(
+            self.gen_sid_payload("call", ["modem", "get_sim_info"], self.sid)
         )
 
-    async def modem_sim_signal(self) -> list["ModemSimSignalEntry"]:
+    async def modem_sim_signal(self) -> list[ModemSimSignalEntry]:
         """Retrieves information about the modems, requires authentication."""
-        return cast(
-            list["ModemSimSignalEntry"],
-            await self._request(
-                self.gen_sid_payload("call", ["modem", "get_sim_signal"], self.sid)
-            ),
+        return await self._request(
+            self.gen_sid_payload("call", ["modem", "get_sim_signal"], self.sid)
         )
 
-    async def router_get_status(self) -> "RouterStatusResponse":
+    async def router_get_status(self) -> RouterStatusResponse:
         """Retrieves the status of the router, requires authentication."""
-        response = cast(
-            "RouterStatusResponse",
-            await self._request(
-                self.gen_sid_payload("call", ["system", "get_status"], self.sid)
-            ),
+        response: RouterStatusResponse = await self._request(
+            self.gen_sid_payload("call", ["system", "get_status"], self.sid)
         )
 
         # remove wifi passwords
@@ -275,33 +282,24 @@ class GLinet(Consumer):
                 response["wifi"][i]["passwd"] = None
         return response
 
-    async def router_get_load(self) -> "SystemLoadResponse":
+    async def router_get_load(self) -> SystemLoadResponse:
         """Retrieves the load information of the router, requires authentication."""
-        return cast(
-            "SystemLoadResponse",
-            await self._request(
-                self.gen_sid_payload("call", ["system", "get_load"], self.sid)
-            ),
+        return await self._request(
+            self.gen_sid_payload("call", ["system", "get_load"], self.sid)
         )
 
-    async def router_mac(self) -> "MaccloneResponse":
+    async def router_mac(self) -> MaccloneResponse:
         """Retrieves the MAC address of the router, requires authentication."""
-        return cast(
-            "MaccloneResponse",
-            await self._request(
-                self.gen_sid_payload("call", ["macclone", "get_mac"], self.sid)
-            ),
+        return await self._request(
+            self.gen_sid_payload("call", ["macclone", "get_mac"], self.sid)
         )
 
-    async def router_reboot(self, delay: int = 0) -> "EmptyResponse":
+    async def router_reboot(self, delay: int = 0) -> EmptyResponse:
         """Reboots the router, requires authentication."""
-        return cast(
-            "EmptyResponse",
-            await self._request(
-                self.gen_sid_payload(
-                    "call", ["system", "reboot", {"delay": delay}], self.sid
-                )
-            ),
+        return await self._request(
+            self.gen_sid_payload(
+                "call", ["system", "reboot", {"delay": delay}], self.sid
+            )
         )
 
     async def ping(self, address: str = "8.8.8.8") -> bool:
@@ -311,34 +309,25 @@ class GLinet(Consumer):
         )
         return isinstance(result, list) and len(result) > 0
 
-    async def connected_to_internet(self) -> "EdgeRouterStatusResponse":
+    async def connected_to_internet(self) -> EdgeRouterStatusResponse:
         """Is the internet reachable."""
-        return cast(
-            "EdgeRouterStatusResponse",
-            await self._request(
-                self.gen_sid_payload("call", ["edgerouter", "get_status"], self.sid)
-            ),
+        return await self._request(
+            self.gen_sid_payload("call", ["edgerouter", "get_status"], self.sid)
         )
 
-    async def list_all_clients(self) -> "ClientsResponse":
+    async def list_all_clients(self) -> ClientsResponse:
         """Gets all clients connected to the router."""
-        return cast(
-            "ClientsResponse",
-            await self._request(
-                self.gen_sid_payload("call", ["clients", "get_list"], self.sid)
-            ),
+        return await self._request(
+            self.gen_sid_payload("call", ["clients", "get_list"], self.sid)
         )
 
-    async def list_static_clients(self) -> "StaticBindListResponse":
+    async def list_static_clients(self) -> StaticBindListResponse:
         """Gets all static clients connected to the router."""
-        return cast(
-            "StaticBindListResponse",
-            await self._request(
-                self.gen_sid_payload("call", ["lan", "get_static_bind_list"], self.sid)
-            ),
+        return await self._request(
+            self.gen_sid_payload("call", ["lan", "get_static_bind_list"], self.sid)
         )
 
-    async def connected_clients(self) -> "ConnectedClients":
+    async def connected_clients(self) -> ConnectedClients:
         """Gets all connected clients asynchronously.
 
         Returns a dictionary with MAC address as key and client data as value.
@@ -350,25 +339,19 @@ class GLinet(Consumer):
                 clients[client["mac"]] = client
         return clients
 
-    async def _wifi_config_get(self) -> "WifiConfigResponse":
+    async def _wifi_config_get(self) -> WifiConfigResponse:
         """Retrieves the WiFi configuration from the router."""
-        return cast(
-            "WifiConfigResponse",
-            await self._request(
-                self.gen_sid_payload("call", ["wifi", "get_config"], self.sid)
-            ),
+        return await self._request(
+            self.gen_sid_payload("call", ["wifi", "get_config"], self.sid)
         )
 
-    async def _wifi_config_set(self, config: "WifiConfigSetParams") -> "EmptyResponse":
+    async def _wifi_config_set(self, config: WifiConfigSetParams) -> EmptyResponse:
         """Sets the WiFi configuration on the router."""
-        return cast(
-            "EmptyResponse",
-            await self._request(
-                self.gen_sid_payload("call", ["wifi", "set_config", config], self.sid)
-            ),
+        return await self._request(
+            self.gen_sid_payload("call", ["wifi", "set_config", config], self.sid)
         )
 
-    async def wifi_ifaces_get(self, redact_keys: bool = True) -> "WifiIfacesMap":
+    async def wifi_ifaces_get(self, redact_keys: bool = True) -> WifiIfacesMap:
         """Returns a dictionary of wifi interfaces.
 
         If redact_keys, all key values will be set to None.
@@ -385,7 +368,7 @@ class GLinet(Consumer):
 
     async def wifi_iface_set_enabled(
         self, iface_name: str, enabled: bool
-    ) -> "EmptyResponse":
+    ) -> EmptyResponse:
         """Enable / disable wifi interface by name as found by wifi_ifaces_get()."""
         ifaces = await self.wifi_ifaces_get()
         if iface_name in ifaces:
@@ -396,15 +379,12 @@ class GLinet(Consumer):
 
     # VPN information
 
-    async def wireguard_client_list(self) -> list["WireguardClientListItem"]:
+    async def wireguard_client_list(self) -> list[WireguardClientListItem]:
         """Gets the list of WireGuard clients."""
-        response = cast(
-            "WireguardConfigListResponse",
-            await self._request(
-                self.gen_sid_payload(
-                    "call", ["wg-client", "get_all_config_list"], self.sid
-                )
-            ),
+        response: WireguardConfigListResponse = await self._request(
+            self.gen_sid_payload(
+                "call", ["wg-client", "get_all_config_list"], self.sid
+            )
         )
         configs: list[WireguardClientListItem] = []
         for item in response.get("config_list", []):
@@ -421,7 +401,7 @@ class GLinet(Consumer):
                 )
         return configs
 
-    async def wireguard_client_state(self) -> list["WireguardStatusItem"]:
+    async def wireguard_client_state(self) -> list[WireguardStatusItem]:
         """Retrieves WireGuard client connection status.
 
         Firmware 4.8 and greater returns a list of status objects.
@@ -432,38 +412,33 @@ class GLinet(Consumer):
         assert self._firmware_version is not None
 
         # If version is 4.8 or greater use vpn-client otherwise use wg-client
-        target_call = (
-            "vpn-client"
-            if self._firmware_version >= NEW_VPN_CLIENT_VERSION
-            else "wg-client"
-        )
-
-        response = await self._request(
-            self.gen_sid_payload("call", [target_call, "get_status"], self.sid)
-        )
-
         if self._firmware_version < NEW_VPN_CLIENT_VERSION:
-            return [cast("WireguardStatusItem", response)]
+            old_item: WireguardStatusItem = await self._request(
+                self.gen_sid_payload("call", ["wg-client", "get_status"], self.sid)
+            )
+            return [old_item]
 
-        vpn_status = cast("VpnClientStatusResponse", response)
+        vpn_status: VpnClientStatusResponse = await self._request(
+            self.gen_sid_payload("call", ["vpn-client", "get_status"], self.sid)
+        )
         return vpn_status.get("status_list", [])
 
     async def wireguard_client_start(
         self, group_id: int, peer_or_tunnel_id: int
-    ) -> "EmptyResponse":
+    ) -> EmptyResponse:
         """Starts a WireGuard client with the specified tunnel ID."""
         return await self._wireguard_set_client_enabled(
             group_id, peer_or_tunnel_id, True
         )
 
-    async def wireguard_client_stop(self, peer_or_tunnel_id: int) -> "EmptyResponse":
+    async def wireguard_client_stop(self, peer_or_tunnel_id: int) -> EmptyResponse:
         """Stops the WireGuard client with the specified tunnel ID."""
         # Pass -1 for group_id and peer_id as they are not needed to stop the client
         return await self._wireguard_set_client_enabled(-1, peer_or_tunnel_id, False)
 
     async def _wireguard_set_client_enabled(
         self, group_id: int, peer_or_tunnel_id: int, enabled: bool
-    ) -> "EmptyResponse":
+    ) -> EmptyResponse:
         """Sets the WireGuard client enabled state."""
         if self._firmware_version is None:
             await self.router_info()
@@ -472,84 +447,65 @@ class GLinet(Consumer):
         # If version is 4.8 or greater use vpn-client otherwise use wg-client
         if self._firmware_version >= NEW_VPN_CLIENT_VERSION:
             tunnel_id = peer_or_tunnel_id
-            return cast(
-                "EmptyResponse",
-                await self._request(
-                    self.gen_sid_payload(
-                        "call",
-                        [
-                            "vpn-client",
-                            "set_tunnel",
-                            {"enabled": enabled, "tunnel_id": tunnel_id},
-                        ],
-                        self.sid,
-                    )
-                ),
+            return await self._request(
+                self.gen_sid_payload(
+                    "call",
+                    [
+                        "vpn-client",
+                        "set_tunnel",
+                        {"enabled": enabled, "tunnel_id": tunnel_id},
+                    ],
+                    self.sid,
+                )
             )
 
         # Not version 4.8 or greater so use wg-client
         peer_id = peer_or_tunnel_id
         if enabled:
-            return cast(
-                "EmptyResponse",
-                await self._request(
-                    self.gen_sid_payload(
-                        "call",
-                        [
-                            "wg-client",
-                            "start",
-                            {"group_id": group_id, "peer_id": peer_id},
-                        ],
-                        self.sid,
-                    )
-                ),
+            return await self._request(
+                self.gen_sid_payload(
+                    "call",
+                    [
+                        "wg-client",
+                        "start",
+                        {"group_id": group_id, "peer_id": peer_id},
+                    ],
+                    self.sid,
+                )
             )
 
         # Not enabled, call the stop method
-        return cast(
-            "EmptyResponse",
-            await self._request(
-                self.gen_sid_payload("call", ["wg-client", "stop"], self.sid)
-            ),
+        return await self._request(
+            self.gen_sid_payload("call", ["wg-client", "stop"], self.sid)
         )
 
-    async def _tailscale_get_config(self) -> "TailscaleConfigResponse | Literal[False]":
+    async def _tailscale_get_config(self) -> TailscaleConfigResponse | Literal[False]:
         """Gets Tailscale configuration from router, returning False if unsupported."""
         try:
-            result = await self._request(
+            return await self._request(
                 self.gen_sid_payload("call", ["tailscale", "get_config"], self.sid)
             )
         except APIClientError:
             return False
-        return cast("TailscaleConfigResponse", result)
 
     async def _tailscale_set_config(
-        self, config_updates: "TailscaleSetConfigParams"
-    ) -> "EmptyResponse":
+        self, config_updates: TailscaleSetConfigParams
+    ) -> EmptyResponse:
         """Updates the Tailscale configuration with the provided updates."""
-        current_config = cast(
-            "TailscaleConfigResponse",
-            await self._request(
-                self.gen_sid_payload("call", ["tailscale", "get_config"], self.sid)
-            ),
+        current_config: TailscaleConfigResponse = await self._request(
+            self.gen_sid_payload("call", ["tailscale", "get_config"], self.sid)
         )
         new_config = dict(current_config) | dict(config_updates)
-        return cast(
-            "EmptyResponse",
-            await self._request(
-                self.gen_sid_payload(
-                    "call", ["tailscale", "set_config", new_config], self.sid
-                )
-            ),
+        return await self._request(
+            self.gen_sid_payload(
+                "call", ["tailscale", "set_config", new_config], self.sid
+            )
         )
 
-    async def _tailscale_status(self) -> "TailscaleStatusResponse | list[object]":
+    async def _tailscale_status(self) -> TailscaleStatusResponse | list[object]:
         """Returns Tailscale status dictionary, or empty list if unconfigured/disconnected."""
-        return cast(
-            "TailscaleStatusResponse | list[object]",
-            await self._request(
-                self.gen_sid_payload("call", ["tailscale", "get_status"], self.sid)
-            ),
+        return await self._request(
+            self.gen_sid_payload("call", ["tailscale", "get_status"], self.sid)
         )
 
     async def tailscale_connection_state(self) -> TailscaleConnection:

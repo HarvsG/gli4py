@@ -150,7 +150,14 @@ async def _check_mock_router_support_async(errors: list[str]) -> None:
         salt = ch["result"]["salt"]
         nonce = ch["result"]["nonce"]
         alg = ch["result"]["alg"]
-        hsh = GLinet._compute_hash(alg, salt, nonce, "md5", "root", "goodlife")
+        hsh = GLinet._compute_hash(
+            alg=alg,
+            salt=salt,
+            nonce=nonce,
+            hash_method="md5",
+            username="root",
+            password="goodlife",
+        )
         lg = router._handle_login(2, {"username": "root", "hash": hsh})
         return lg["result"]["sid"]
 
@@ -178,7 +185,12 @@ async def _check_mock_router_support_async(errors: list[str]) -> None:
                     nonce = ch["result"]["nonce"]
                     alg = ch["result"]["alg"]
                     hsh = GLinet._compute_hash(
-                        alg, salt, nonce, "md5", "root", "goodlife"
+                        alg=alg,
+                        salt=salt,
+                        nonce=nonce,
+                        hash_method="md5",
+                        username="root",
+                        password="goodlife",
                     )
                     res = router._handle_login(
                         req_id + 1, {"username": "root", "hash": hsh}

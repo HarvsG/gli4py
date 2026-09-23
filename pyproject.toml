@@ -43,6 +43,10 @@ module = "gli4py.glinet"
 disallow_subclassing_any = false
 disallow_untyped_decorators = false
 disallow_untyped_calls = false
+warn_return_any = false
+
+[tool.pylint.design]
+max-args = 7
 
 [build-system]
 requires = ["poetry-core"]

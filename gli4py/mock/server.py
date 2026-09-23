@@ -255,12 +255,12 @@ class MockRouter:
 
         # Compute expected hash
         expected_hash = GLinet._compute_hash(  # pylint: disable=protected-access
-            self.alg,
-            self.last_salt,
-            self.last_nonce,
-            self.hash_method,
-            self.username,
-            self.password,
+            alg=self.alg,
+            salt=self.last_salt,
+            nonce=self.last_nonce,
+            hash_method=self.hash_method,
+            username=self.username,
+            password=self.password,
         )
 
         if username == self.username and received_hash == expected_hash:

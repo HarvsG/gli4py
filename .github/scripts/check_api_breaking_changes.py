@@ -45,7 +45,7 @@ def extract_public_methods(
     for node in tree.body:
         if isinstance(node, ast.ClassDef) and node.name == "GLinet":
             for item in node.body:
-                if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                if isinstance(item, ast.FunctionDef | ast.AsyncFunctionDef):
                     if not item.name.startswith("_"):
                         methods[item.name] = item
     return methods
