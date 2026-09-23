@@ -886,28 +886,28 @@ def main() -> None:
         epilog="""
 Examples:
   # Read-only probe with password argument (safe, won't change router state):
-  python3 enumeration.py --url 192.168.8.1 --password your_password
+  gli-enumerate --url 192.168.8.1 --password your_password
 
   # Short flags (-u, -p):
-  python3 enumeration.py -u 192.168.8.1 -p your_password
+  gli-enumerate -u 192.168.8.1 -p your_password
 
   # Only check a specific module (e.g. system or clients):
-  python3 enumeration.py -u 192.168.8.1 -p your_password --module system
+  gli-enumerate -u 192.168.8.1 -p your_password --module system
 
   # Only check a specific endpoint:
-  python3 enumeration.py -u 192.168.8.1 -p your_password --endpoint system.get_info
+  gli-enumerate -u 192.168.8.1 -p your_password --endpoint system.get_info
 
   # Probe all endpoints including write methods (CAUTION):
-  python3 enumeration.py -u 192.168.8.1 -p your_password --no-read-only
+  gli-enumerate -u 192.168.8.1 -p your_password --no-read-only
 
   # Save report to file:
-  python3 enumeration.py -u 192.168.8.1 -p your_password --output report.json
+  gli-enumerate -u 192.168.8.1 -p your_password --output report.json
 
   # Disable deep redaction of sensitive tracking metrics:
-  python3 enumeration.py -u 192.168.8.1 -p your_password --disable-deep-redact
+  gli-enumerate -u 192.168.8.1 -p your_password --disable-deep-redact
 
   # Quiet mode (JSON only, no progress):
-  python3 enumeration.py -u 192.168.8.1 -p your_password --quiet
+  gli-enumerate -u 192.168.8.1 -p your_password --quiet
         """,
     )
     parser.add_argument(
