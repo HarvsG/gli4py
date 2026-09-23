@@ -4,6 +4,7 @@ Validates that raw API JSON response payloads (from tests/fixtures/ or live rout
 and processed gli4py method outputs strictly conform to the static TypedDict definitions
 in gli4py.types without undocumented keys or type mismatches.
 """
+# pylint: disable=wrong-import-position,too-many-locals,broad-exception-caught
 
 from __future__ import annotations
 

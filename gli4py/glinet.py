@@ -150,6 +150,7 @@ class GLinet(Consumer):  # type: ignore[misc]
         return False
 
     @staticmethod
+    # pylint: disable=too-many-arguments,too-many-positional-arguments
     def _compute_hash(
         alg: int,
         salt: str,
