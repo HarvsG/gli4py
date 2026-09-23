@@ -6,11 +6,11 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from semver import Version
 
-from gli4py.enums import TailscaleConnection
 from gli4py.error_codes import ERROR_CODES
 from gli4py.error_handling import APIClientError
 from gli4py.glinet import NEW_VPN_CLIENT_VERSION, GLinet
 from gli4py.helpers import normalize_url
+from gli4py.models import TailscaleConnection
 
 # ─── Initialization & Properties ───
 

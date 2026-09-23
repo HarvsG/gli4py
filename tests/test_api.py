@@ -10,9 +10,9 @@ import asyncio
 import pytest
 from semver import Version
 
-from gli4py.enums import TailscaleConnection
 from gli4py.error_handling import NonZeroResponse
 from gli4py.glinet import NEW_VPN_CLIENT_VERSION, GLinet
+from gli4py.models import TailscaleConnection
 
 # All tests in this module share one GLinet client (and aiohttp session),
 # running on a module-scoped event loop.

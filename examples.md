@@ -652,7 +652,7 @@ True
 #### `tailscale_connection_state()`
 Invocation: `await router.tailscale_connection_state()` (tested in `tests/test_api.py::test_tailscale_connection_state`)
 
-Maps `tailscale/get_status` state codes to `gli4py.enums.TailscaleConnection`:
+Maps `tailscale/get_status` state codes to `gli4py.models.TailscaleConnection`:
 ```python
 TailscaleConnection.CONNECTED  # status == 3
 # Other states:
