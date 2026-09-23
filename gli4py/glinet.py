@@ -138,7 +138,7 @@ class GLinet(Consumer):
     @args(data=Body)
     @json
     @post("")
-    @timeout(5)
+    @timeout(15)
     async def _request_long_timeout(self, data: object) -> T:
         """Base method to make a request to the GL-inet API with a longer timeout."""
         raise NotImplementedError
@@ -531,16 +531,16 @@ class GLinet(Consumer):
 
     async def tailscale_start(self, depth: int = 0) -> Literal[True]:
         """Starts Tailscale on the router. Uses recursion to handle connection attempts."""
-        if depth > 10:
+        if depth > 15:
             raise ConnectionError(
-                "Tailscale attempted to connect 10 times with no success"
+                "Tailscale attempted to connect 15 times with no success"
             )
         response = await self._tailscale_status()
         if isinstance(response, list):
             if response == []:
                 await self._tailscale_set_config({"enabled": True})
                 if depth > 0:
-                    await asyncio.sleep(0.3)
+                    await asyncio.sleep(0.5)
                 depth += 1
                 return await self.tailscale_start(depth)
             raise ConnectionError("Unexpected list response from tailscale status")

@@ -494,15 +494,14 @@ class MockRouter:
             if self.vpn_client_status.get("status_list"):
                 self.vpn_client_status["status_list"][0]["status"] = 1
                 self.vpn_client_status["status_list"][0]["enabled"] = True
-            return {"tunnel_id": peer_id}
+            return []
         if func == "stop":
-            tunnel_id = self.wireguard_status.get("tunnel_id", 2001)
             self.wireguard_status["status"] = 0
             self.wireguard_status["enabled"] = False
             if self.vpn_client_status.get("status_list"):
                 self.vpn_client_status["status_list"][0]["status"] = 0
                 self.vpn_client_status["status_list"][0]["enabled"] = False
-            return {"tunnel_id": tunnel_id}
+            return []
         return None
 
     def _dispatch_vpn_client(self, func: str, opt_args: Any) -> Any:

@@ -143,7 +143,7 @@ def disruptive_tests(request: pytest.FixtureRequest) -> bool:
 @pytest.fixture(scope="session")
 def reboot_wait_time(is_live: bool) -> float:
     """Return sleep duration to wait for router shutdown during reboot test."""
-    return 15.0 if is_live else 0.15
+    return 30.0 if is_live else 0.15
 
 
 @pytest.fixture(scope="module")

@@ -39,8 +39,13 @@ class JsonRpcResponse(TypedDict):
     error: NotRequired[JsonRpcError]
 
 
-class EmptyResponse(TypedDict, total=False):
-    """Empty JSON-RPC dictionary returned by mutation endpoints."""
+class EmptyResponseDict(TypedDict, total=False):
+    """Empty or minimal JSON-RPC dictionary returned by mutation endpoints."""
+
+    tunnel_id: NotRequired[int]
+
+
+EmptyResponse: TypeAlias = EmptyResponseDict | list[object]
 
 
 # ─── Authentication & Connectivity ────────────────────────────────────────────

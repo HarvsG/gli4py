@@ -632,9 +632,13 @@ Flattens and extracts client peers from `wg-client/get_all_config_list`:
 #### `wireguard_client_start()` / `wireguard_client_stop()`
 Invocation: `await router.wireguard_client_start(7707, 2001)` / `await router.wireguard_client_stop(2001)` (tested in `tests/test_api.py::test_wireguard_client_start_stop`)
 
-Starts or stops a WireGuard tunnel peer:
+Starts or stops a WireGuard tunnel peer. Returns a dictionary with `tunnel_id` on firmware >= 4.8 (`vpn-client`), or an empty list `[]` on older firmware (< 4.8 `wg-client`):
 ```json
-{}
+{"tunnel_id": 2001}
+```
+or
+```json
+[]
 ```
 
 ---
