@@ -33,7 +33,7 @@ from gli4py.helpers import normalize_url
 try:
     from aiohttp import client_proto, http_parser
 
-    client_proto.HttpResponseParser = http_parser.HttpResponseParserPy  # type: ignore[misc]
+    client_proto.HttpResponseParser = http_parser.HttpResponseParserPy  # type: ignore[attr-defined]
     http_parser.SINGLETON_HEADERS = frozenset(  # type: ignore[misc]
         h for h in http_parser.SINGLETON_HEADERS if h != "content-type"
     )

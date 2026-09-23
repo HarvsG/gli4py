@@ -27,9 +27,11 @@ ruff = ">=0.9.0"
 pre-commit = ">=4.0.0"
 mypy = ">=1.15.0"
 types-passlib = ">=1.7.7"
+typeguard = ">=4.0.0"
 
 [tool.mypy]
 python_version = "3.14"
+strict = true
 check_untyped_defs = true
 disallow_incomplete_defs = true
 warn_unused_ignores = true
@@ -43,6 +45,7 @@ build-backend = "poetry.core.masonry.api"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+addopts = "-p no:homeassistant"
 markers = [
     "live: tests that require a physical GL.iNet router (pass --live to run)",
     "disruptive: tests that modify router configuration or reboot (pass --disruptive-tests to run)",
