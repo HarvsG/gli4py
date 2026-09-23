@@ -10,9 +10,9 @@ import asyncio
 import pytest
 from semver import Version
 
-from gli4py.enums import TailscaleConnection
 from gli4py.error_handling import NonZeroResponse
 from gli4py.glinet import NEW_VPN_CLIENT_VERSION, GLinet
+from gli4py.models import TailscaleConnection
 
 # All tests in this module share one GLinet client (and aiohttp session),
 # running on a module-scoped event loop.
@@ -179,10 +179,11 @@ async def test_ping(router: GLinet) -> None:
     """Test pinging a host."""
     if not router.logged_in:
         pytest.skip("Router not logged in")
-    response = await router.ping("google.com")
-    assert response
-    print(response)
     response = await router.ping("8.8.8.8")
+    print(f"Ping 8.8.8.8: {response}")
+    assert response
+    response = await router.ping("google.com")
+    print(f"Ping google.com: {response}")
     assert response
     response = await router.ping("0.0.0.1")
     assert not response
@@ -217,12 +218,18 @@ async def test_wireguard_client_state(router: GLinet) -> None:
 
 
 @pytest.mark.disruptive
-async def test_wireguard_start(router: GLinet, disruptive_tests: bool) -> None:
+async def test_wireguard_start(
+    router: GLinet, disruptive_tests: bool, is_live: bool
+) -> None:
     """Test starting the WireGuard client."""
     if not disruptive_tests:
         pytest.skip("Disruptive tests are disabled (pass --disruptive-tests to run)")
     if not router.logged_in:
         pytest.skip("Router not logged in")
+
+    info_response = await router.router_info()
+    firmware_version = info_response["firmware_version"]
+    parsed_version = Version.parse(firmware_version)
 
     status_list = await router.wireguard_client_state()
     if status_list is None or len(status_list) == 0:
@@ -236,22 +243,31 @@ async def test_wireguard_start(router: GLinet, disruptive_tests: bool) -> None:
 
     result = await router.wireguard_client_start(group_id, tunnel_id or peer_id)
     print("RESULT: ", result)
-    assert result["tunnel_id"] == tunnel_id
+    # On newer firmware (>= 4.8.0.0), vpn-client returns {"tunnel_id": ...}
+    # On older firmware (< 4.8.0.0), wg-client returns an empty list []
+    if parsed_version >= NEW_VPN_CLIENT_VERSION:
+        assert isinstance(result, dict)
+        assert result.get("tunnel_id") == (tunnel_id or peer_id)
+    else:
+        assert result == []
 
-    # Wait for the client to connect or timeout with 10 seconds
-    for i in range(10):
+    # Wait for the client to connect with a longer timeout on live hardware
+    max_attempts = 25 if is_live else 10
+    for i in range(max_attempts):
         status_list = await router.wireguard_client_state()
         first_status = status_list[0]
-        if (
-            "status" in first_status
-            and first_status["status"] == 1
-            and "enabled" in first_status
-            and first_status["enabled"]
-        ):
-            break
+        print(f"WireGuard start wait {i + 1}/{max_attempts}: {first_status}")
+        # On newer firmware (>= 4.8), both enabled and status==1 indicate connection.
+        # On older firmware (< 4.8), 'enabled' is absent from wg-client status, so check status==1.
+        if parsed_version >= NEW_VPN_CLIENT_VERSION:
+            if first_status.get("status") == 1 and first_status.get("enabled"):
+                break
+        else:
+            if first_status.get("status") == 1:
+                break
         await asyncio.sleep(1)
 
-        if i == 9:
+        if i == max_attempts - 1:
             pytest.fail("WireGuard client took too long to connect.")
 
 
@@ -265,17 +281,26 @@ async def test_wireguard_stop(router: GLinet, disruptive_tests: bool) -> None:
 
     info_response = await router.router_info()
     firmware_version = info_response["firmware_version"]
+    parsed_version = Version.parse(firmware_version)
+
     status_list = await router.wireguard_client_state()
     if status_list is None or len(status_list) == 0:
         pytest.skip("No WireGuard client configured, skipping test.")
         return
 
     first_status = status_list[0]
-    tunnel_id = first_status["tunnel_id"]
+    # On firmware < 4.8, tunnel_id is not present; fallback to peer_id
+    peer_or_tunnel_id = first_status.get("tunnel_id") or first_status["peer_id"]
 
-    result = await router.wireguard_client_stop(tunnel_id)
+    result = await router.wireguard_client_stop(peer_or_tunnel_id)
     print("RESULT: ", result)
-    assert result["tunnel_id"] == tunnel_id
+    # On newer firmware (>= 4.8.0.0), vpn-client returns {"tunnel_id": ...}
+    # On older firmware (< 4.8.0.0), wg-client returns an empty list []
+    if parsed_version >= NEW_VPN_CLIENT_VERSION:
+        assert isinstance(result, dict)
+        assert result.get("tunnel_id") == peer_or_tunnel_id
+    else:
+        assert result == []
 
     parsed_version = Version.parse(firmware_version)
 
@@ -317,7 +342,11 @@ async def test_tailscale_connection(router: GLinet) -> None:
         pytest.skip("Tailscale is not configured or supported on this device")
     response = await router.tailscale_connection_state()
     print(response)
-    assert response in [TailscaleConnection.DISCONNECTED, TailscaleConnection.CONNECTED]
+    assert response in [
+        TailscaleConnection.DISCONNECTED,
+        TailscaleConnection.CONNECTED,
+        TailscaleConnection.CONNECTING,
+    ]
 
 
 async def test_tailscale_configured(router: GLinet) -> None:
@@ -366,7 +395,10 @@ async def test_tailscale_stop(router: GLinet, disruptive_tests: bool) -> None:
 
 @pytest.mark.disruptive
 async def test_router_reboot(
-    router: GLinet, disruptive_tests: bool, reboot_wait_time: float
+    router: GLinet,
+    disruptive_tests: bool,
+    reboot_wait_time: float,
+    is_live: bool,
 ) -> None:
     """Test rebooting the router."""
     if not disruptive_tests:
@@ -377,8 +409,13 @@ async def test_router_reboot(
     print(response)
     print(f"waiting `{reboot_wait_time}s` for router to shutdown")
     await asyncio.sleep(reboot_wait_time)
-    while not await router.router_reachable():
+    wake_attempts = 120 if is_live else 50
+    for _ in range(wake_attempts):
+        if await router.router_reachable():
+            break
         print("waiting for router to wake")
-        await asyncio.sleep(0.05)
+        await asyncio.sleep(1.0 if is_live else 0.05)
+    else:
+        pytest.fail("Router did not wake up after reboot.")
     with pytest.raises(NonZeroResponse):
         await router.router_info()

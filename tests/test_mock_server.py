@@ -139,12 +139,12 @@ def test_keep_alive_and_logout() -> None:
             timeout=2.0,
         ).json()["result"]
         hsh = GLinet._compute_hash(
-            res["alg"],
-            res["salt"],
-            res["nonce"],
-            res["hash-method"],
-            "root",
-            "goodlife",
+            alg=res["alg"],
+            salt=res["salt"],
+            nonce=res["nonce"],
+            hash_method=res["hash-method"],
+            username="root",
+            password="goodlife",
         )
         login_res = requests.post(
             s.url,

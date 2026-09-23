@@ -632,9 +632,13 @@ Flattens and extracts client peers from `wg-client/get_all_config_list`:
 #### `wireguard_client_start()` / `wireguard_client_stop()`
 Invocation: `await router.wireguard_client_start(7707, 2001)` / `await router.wireguard_client_stop(2001)` (tested in `tests/test_api.py::test_wireguard_client_start_stop`)
 
-Starts or stops a WireGuard tunnel peer:
+Starts or stops a WireGuard tunnel peer. Returns a dictionary with `tunnel_id` on firmware >= 4.8 (`vpn-client`), or an empty list `[]` on older firmware (< 4.8 `wg-client`):
 ```json
-{}
+{"tunnel_id": 2001}
+```
+or
+```json
+[]
 ```
 
 ---
@@ -652,7 +656,7 @@ True
 #### `tailscale_connection_state()`
 Invocation: `await router.tailscale_connection_state()` (tested in `tests/test_api.py::test_tailscale_connection_state`)
 
-Maps `tailscale/get_status` state codes to `gli4py.enums.TailscaleConnection`:
+Maps `tailscale/get_status` state codes to `gli4py.models.TailscaleConnection`:
 ```python
 TailscaleConnection.CONNECTED  # status == 3
 # Other states:

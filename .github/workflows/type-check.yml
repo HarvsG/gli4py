@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   typing:
-    name: Mypy
+    name: Type Check & Compliance
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -35,5 +35,8 @@ jobs:
       - name: Install dependencies
         run: poetry install --no-interaction
 
-      - name: Run Mypy
-        run: poetry run mypy gli4py
+      - name: Run Mypy Strict
+        run: poetry run mypy --strict gli4py
+
+      - name: Run API Type Compliance Test
+        run: poetry run pytest tests/test_type_compliance.py

@@ -1,39 +1,40 @@
 """This module contains custom exceptions and a function to handle API response status codes."""
 
+from typing import cast
+
 from aiohttp import ClientResponse
 
 
 class APIClientError(Exception):
-    """Base class for all exceptions raised by the API client"""
+    """Base class for all exceptions raised by the API client."""
 
 
 class UnsuccessfulRequest(APIClientError):
-    """raised when the status code is not 200"""
+    """Raised when the status code is not 200."""
 
 
 class NonZeroResponse(APIClientError):
-    """raised when the router responds but with a non 0 code"""
+    """Raised when the router responds but with a non-zero code."""
 
 
 class TokenError(NonZeroResponse):
-    """Should be raised when the token is invalid or expired"""
+    """Raised when the session token is invalid or expired."""
 
 
 class AuthenticationError(NonZeroResponse):
-    """raised for authentication errors, such as invalid credentials or password"""
+    """Raised for authentication errors, such as invalid credentials or password."""
 
 
 class LockoutError(AuthenticationError):
-    """Raised when login is locked out due to exceeding failed login limit"""
+    """Raised when login is locked out due to exceeding failed login limit."""
 
 
-async def raise_for_status(response: ClientResponse) -> dict:
+async def raise_for_status(response: ClientResponse) -> object:
     """Checks whether or not the response was successful."""
-
     # 1. Safely read the body as JSON, falling back to text if it's HTML
     try:
         # content_type=None forces aiohttp to parse it even if the router sends the wrong headers
-        res = await response.json(content_type=None)
+        raw_res = await response.json(content_type=None)
     except Exception as exc:
         text = await response.text()
         raise UnsuccessfulRequest(
@@ -42,33 +43,52 @@ async def raise_for_status(response: ClientResponse) -> dict:
 
     # 2. Process the GL-iNet logic
     if 200 <= response.status < 300:
-        if "result" in res:
-            return res["result"]
+        if isinstance(raw_res, dict):
+            res_dict = cast(dict[str, object], raw_res)
+            if "result" in res_dict:
+                return res_dict["result"]
 
-        if "error" not in res:
-            raise ConnectionError(f"Unexpected response from GLinet router {res}")
+            if "error" not in res_dict:
+                raise ConnectionError(
+                    f"Unexpected response from GLinet router {res_dict}"
+                )
 
-        if "message" not in res["error"]:
-            res["error"]["message"] = "null"
+            error_obj = res_dict.get("error")
+            if isinstance(error_obj, dict):
+                error_dict = cast(dict[str, object], error_obj)
+                if "message" not in error_dict:
+                    error_dict["message"] = "null"
 
-        code = res["error"].get("code", 0)
-        if code == -1:
-            raise TokenError(
-                f"Request returned error code -1 ({res['error']['message']})"
-            )
-        if code == -32000:
-            raise AuthenticationError(
-                f"Request returned error code -32000 ({res['error']['message']})"
-            )
-        if code == -32003:
-            raise LockoutError(
-                f"Request returned error code -32003 ({res['error']['message']})"
-            )
-        if code < 0:
-            raise NonZeroResponse(
-                f"Request returned error code {code} with message: {res['error']['message']}"
-            )
+                code_val = error_dict.get("code", 0)
+                code = int(code_val) if isinstance(code_val, int | str) else 0
+                msg = str(error_dict.get("message", "null"))
 
-        return res
+                if code == -1:
+                    raise TokenError(f"Request returned error code -1 ({msg})")
+                if code == -32000:
+                    raise AuthenticationError(
+                        f"Request returned error code -32000 ({msg})"
+                    )
+                if code == -32003:
+                    raise LockoutError(f"Request returned error code -32003 ({msg})")
+                if code < 0:
+                    raise NonZeroResponse(
+                        f"Request returned error code {code} with message: {msg}"
+                    )
 
-    raise UnsuccessfulRequest(f"Request failed with status {response.status}: {res}")
+        return raw_res
+
+    raise UnsuccessfulRequest(
+        f"Request failed with status {response.status}: {raw_res}"
+    )
+
+
+__all__ = [
+    "APIClientError",
+    "AuthenticationError",
+    "LockoutError",
+    "NonZeroResponse",
+    "TokenError",
+    "UnsuccessfulRequest",
+    "raise_for_status",
+]

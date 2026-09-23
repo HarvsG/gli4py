@@ -33,7 +33,7 @@ from gli4py.helpers import normalize_url
 try:
     from aiohttp import client_proto, http_parser
 
-    client_proto.HttpResponseParser = http_parser.HttpResponseParserPy  # type: ignore[misc]
+    client_proto.HttpResponseParser = http_parser.HttpResponseParserPy  # type: ignore[attr-defined]
     http_parser.SINGLETON_HEADERS = frozenset(  # type: ignore[misc]
         h for h in http_parser.SINGLETON_HEADERS if h != "content-type"
     )
@@ -703,15 +703,18 @@ def filter_registry(
 
     if modules or methods:
         target_mods = set(modules) if modules else set(registry.keys())
-        target_meths = set(methods) if methods else None
+        target_meths: set[str] | None = set(methods) if methods else None
 
         for mod in target_mods:
             if mod in registry:
-                matching_methods = [
-                    (meth, is_safe)
-                    for meth, is_safe in registry[mod]
-                    if target_meths is None or meth in target_meths
-                ]
+                if target_meths is None:
+                    matching_methods = list(registry[mod])
+                else:
+                    matching_methods = [
+                        (meth, is_safe)
+                        for meth, is_safe in registry[mod]
+                        if meth in target_meths
+                    ]
                 if matching_methods:
                     if mod not in targets:
                         targets[mod] = []
@@ -719,10 +722,10 @@ def filter_registry(
                         if not any(m == item[0] for m, _ in targets[mod]):
                             targets[mod].append(item)
             else:
-                if target_meths:
+                if target_meths is not None:
                     if mod not in targets:
                         targets[mod] = []
-                    for meth in target_meths:
+                    for meth in sorted(target_meths):
                         is_safe = meth.startswith(
                             ("get_", "is_", "check_", "list_", "ping", "status", "info")
                         )
