@@ -38,6 +38,7 @@ warn_unused_ignores = true
 ignore_missing_imports = true
 files = ["gli4py"]
 
+# uplink lacks PEP 561 stubs, causing untyped decorator/subclassing errors: https://github.com/prkumar/uplink/issues/181
 [[tool.mypy.overrides]]
 module = "gli4py.glinet"
 disallow_subclassing_any = false
