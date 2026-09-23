@@ -382,9 +382,7 @@ class GLinet(Consumer):
     async def wireguard_client_list(self) -> list[WireguardClientListItem]:
         """Gets the list of WireGuard clients."""
         response: WireguardConfigListResponse = await self._request(
-            self.gen_sid_payload(
-                "call", ["wg-client", "get_all_config_list"], self.sid
-            )
+            self.gen_sid_payload("call", ["wg-client", "get_all_config_list"], self.sid)
         )
         configs: list[WireguardClientListItem] = []
         for item in response.get("config_list", []):
