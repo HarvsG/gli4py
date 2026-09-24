@@ -69,8 +69,15 @@ def pytest_addoption(parser: pytest.Parser) -> None:
         "--disruptive",
         dest="disruptive_tests",
         action="store_true",
-        default=False,
-        help="Run disruptive tests that modify router state or reboot.",
+        default=None,
+        help="Run disruptive tests that modify router state or reboot (enabled by default unless --live is used).",
+    )
+    parser.addoption(
+        "--no-disruptive-tests",
+        "--no-disruptive",
+        dest="disruptive_tests",
+        action="store_false",
+        help="Skip disruptive tests that modify router state or reboot.",
     )
 
 
@@ -135,9 +142,17 @@ def router_password(request: pytest.FixtureRequest, is_live: bool) -> str | None
 
 
 @pytest.fixture(scope="session")
-def disruptive_tests(request: pytest.FixtureRequest) -> bool:
-    """Return whether disruptive tests are enabled."""
-    return bool(request.config.getoption("disruptive_tests"))
+def disruptive_tests(request: pytest.FixtureRequest, is_live: bool) -> bool:
+    """Return whether disruptive tests are enabled.
+
+    By default, disruptive tests run against the mock router server (when
+    not live), but are disabled against a physical router (--live) to prevent
+    unintended reboots or state modification.
+    """
+    option: bool | None = request.config.getoption("disruptive_tests")
+    if option is not None:
+        return option
+    return not is_live
 
 
 @pytest.fixture(scope="session")
