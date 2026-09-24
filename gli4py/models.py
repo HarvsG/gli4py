@@ -2,6 +2,8 @@
 
 from enum import IntEnum, StrEnum
 
+from .types import ClientEntry, ConnectedClients, SystemStatusMetrics
+
 
 class TailscaleConnection(IntEnum):
     """Enum representing the connection states of Tailscale."""
@@ -54,9 +56,12 @@ class ModemSimState(StrEnum):
 
 
 __all__ = [
+    "ClientEntry",
     "ClientInterface",
+    "ConnectedClients",
     "ModemSimState",
     "ModemStatus",
+    "SystemStatusMetrics",
     "TailscaleConnection",
     "WifiBand",
     "WifiEncryption",

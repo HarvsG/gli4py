@@ -223,7 +223,13 @@ class SystemStatusClient(TypedDict):
     wireless_total: int
 
 
-class SystemStatusMetrics(TypedDict):
+class SystemStatusCpu(TypedDict, total=False):
+    """CPU metrics within system metrics."""
+
+    temperature: float
+
+
+class SystemStatusMetrics(TypedDict, total=False):
     """System memory, flash, and runtime metrics within system.get_status."""
 
     netnat_enabled: bool
@@ -242,6 +248,7 @@ class SystemStatusMetrics(TypedDict):
     mode: int
     flash_free: int
     timestamp: int
+    cpu: SystemStatusCpu
 
 
 class RouterStatusResponse(TypedDict):
@@ -274,7 +281,7 @@ class RebootParams(TypedDict):
 # ─── Clients & Static DHCP ───────────────────────────────────────────────────
 
 
-class ClientEntry(TypedDict):
+class ClientEntry(TypedDict, total=False):
     """Telemetry and identity details for a connected or offline client."""
 
     mac: str
@@ -869,6 +876,7 @@ __all__ = [
     "SystemPingResult",
     "SystemSoftwareFeature",
     "SystemStatusClient",
+    "SystemStatusCpu",
     "SystemStatusMetrics",
     "SystemStatusNetwork",
     "SystemStatusService",
