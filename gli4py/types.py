@@ -223,7 +223,13 @@ class SystemStatusClient(TypedDict):
     wireless_total: int
 
 
-class SystemStatusMetrics(TypedDict):
+class SystemStatusCpu(TypedDict, total=False):
+    """CPU metrics within system metrics."""
+
+    temperature: float
+
+
+class SystemStatusMetrics(TypedDict, total=False):
     """System memory, flash, and runtime metrics within system.get_status."""
 
     netnat_enabled: bool
@@ -242,6 +248,7 @@ class SystemStatusMetrics(TypedDict):
     mode: int
     flash_free: int
     timestamp: int
+    cpu: SystemStatusCpu
 
 
 class RouterStatusResponse(TypedDict):
@@ -274,7 +281,7 @@ class RebootParams(TypedDict):
 # ─── Clients & Static DHCP ───────────────────────────────────────────────────
 
 
-class ClientEntry(TypedDict):
+class ClientEntry(TypedDict, total=False):
     """Telemetry and identity details for a connected or offline client."""
 
     mac: str
@@ -282,25 +289,32 @@ class ClientEntry(TypedDict):
     name: str
     online: bool
     iface: str
-    vendor: str
-    online_time: str | int
-    alive: str | int
-    new_online: bool
+    type: int
+    online_time: int
     blocked: bool
-    qos_up: str
-    qos_down: str
-    up: str
-    down: str
-    total_up: str
-    total_down: str
-    total_tx_init: NotRequired[int]
-    total_rx_init: NotRequired[int]
-    limit_tx: NotRequired[int]
-    limit_rx: NotRequired[int]
-    last_rx: NotRequired[list[str]]
-    last_tx: NotRequired[list[str]]
-    node: NotRequired[str]
+    total_tx: int
+    total_rx: int
+    total_tx_init: int
+    total_rx_init: int
+    limit_tx: int
+    limit_rx: int
+    tx: int
+    rx: int
+    last_update_rate: int
+    last_rx: NotRequired[list[int]]
+    last_tx: NotRequired[list[int]]
+
+    alias: NotRequired[str]
+    client_class: NotRequired[str]  # Maps to the JSON 'class' key
+
+    # Additional keys not found in my testing but documented in the API reference
     remote: NotRequired[bool]
+    vendor: NotRequired[str]
+    alive: NotRequired[str | int]
+    new_online: NotRequired[bool]
+    qos_up: NotRequired[str]
+    qos_down: NotRequired[str]
+    node: NotRequired[str]
 
 
 class ClientsResponse(TypedDict):
@@ -862,6 +876,7 @@ __all__ = [
     "SystemPingResult",
     "SystemSoftwareFeature",
     "SystemStatusClient",
+    "SystemStatusCpu",
     "SystemStatusMetrics",
     "SystemStatusNetwork",
     "SystemStatusService",
