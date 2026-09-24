@@ -363,46 +363,92 @@ Invocation: `await router.connected_clients()` (tested in `tests/test_api.py::te
 Returns online clients filtered from `clients/get_list` and indexed by MAC address:
 ```json
 {
-   "e6:bb:ea:4b:11:f7":{
-      "remote":true,
-      "mac":"e6:bb:ea:4b:11:f7",
-      "ip":"192.168.0.230",
-      "up":"0",
-      "down":"0",
-      "total_up":"0",
-      "total_down":"0",
-      "qos_up":"0",
-      "qos_down":"0",
-      "blocked":false,
-      "iface":"cable",
-      "name":"pop-os",
-      "online_time":"1623744560",
-      "alive":"2793277",
-      "new_online":false,
-      "online":true,
-      "vendor":"Liteon Technology Corporation",
-      "node":"0"
-   },
-   "11:f6:43:48:ae:04":{
-      "remote":false,
-      "mac":"11:f6:43:48:ae:04",
-      "ip":"192.168.0.167",
-      "up":"0",
-      "down":"0",
-      "total_up":"0",
-      "total_down":"0",
-      "qos_up":"0",
-      "qos_down":"0",
-      "blocked":false,
-      "iface":"cable",
-      "name":"Google-Home-Mini",
-      "online_time":"1623774267",
-      "alive":"2763570",
-      "new_online":false,
-      "online":true,
-      "vendor":"Google, Inc.",
-      "node":"0"
-   }
+  "A1:B2:C3:D4:E5:F6": {
+    "mac": "A1:B2:C3:D4:E5:F6",
+    "ip": "192.168.0.50",
+    "name": "Gaming-Desktop",
+    "online": false,
+    "iface": "cable",
+    "type": 2,
+    "online_time": 0,
+    "blocked": false,
+    "total_tx": 45039485,
+    "total_rx": 120938475,
+    "total_tx_init": 45000000,
+    "total_rx_init": 120000000,
+    "limit_tx": 0,
+    "limit_rx": 0,
+    "tx": 0,
+    "rx": 0,
+    "last_update_rate": 1790253800,
+    "last_rx": [
+      0, 0, 0, 0
+    ],
+    "last_tx": [
+      0, 0, 0, 0
+    ]
+  },
+  "11:22:33:44:55:66": {
+    "mac": "11:22:33:44:55:66",
+    "ip": "192.168.0.120",
+    "name": "LivingRoom-TV",
+    "online": true,
+    "iface": "5G",
+    "type": 1,
+    "online_time": 1790270000,
+    "blocked": false,
+    "total_tx": 53409,
+    "total_rx": 894032,
+    "total_tx_init": 50000,
+    "total_rx_init": 890000,
+    "limit_tx": 0,
+    "limit_rx": 0,
+    "tx": 15,
+    "rx": 250,
+    "last_update_rate": 1790253817,
+    "alias": "Main TV",
+    "class": "smartappliances",
+    "last_rx": [
+      250, 250, 300, 350
+    ],
+    "last_tx": [
+      15, 15, 20, 25
+    ]
+  },
+  "AA:BB:CC:DD:EE:FF": {
+    "mac": "AA:BB:CC:DD:EE:FF",
+    "ip": "192.168.0.210",
+    "name": "Alice-iPhone",
+    "online": true,
+    "iface": "2.4G",
+    "type": 0,
+    "online_time": 1790273500,
+    "blocked": false,
+    "total_tx": 948573,
+    "total_rx": 2049583,
+    "total_tx_init": 940000,
+    "total_rx_init": 2040000,
+    "limit_tx": 0,
+    "limit_rx": 0,
+    "tx": 45,
+    "rx": 12,
+    "last_update_rate": 1790253817,
+    "last_rx": [
+      12, 12, 12, 25, 40, 40, 120, 120
+    ],
+    "last_tx": [
+      45, 45, 45, 90, 90, 150, 150, 200
+    ],
+    // The keys below have been spotted on some specific devices/firmwares
+    // but are not guaranteed to be present across all clients.
+    "remote": false,
+    "vendor": "Apple",
+    "alive": 1,
+    "new_online": true,
+    "qos_up": "0",
+    "qos_down": "0",
+    "node": "Main-Router"
+  }
 }
 ```
 
