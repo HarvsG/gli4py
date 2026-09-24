@@ -197,6 +197,9 @@ class SystemStatusNetwork(TypedDict):
     interface: str
 
 
+WifiBandType: TypeAlias = Literal["2G", "5G", "6G", "2.4G", "2g", "5g", "6g"] | str
+
+
 class SystemStatusWifi(TypedDict):
     """Per-radio Wi-Fi state within system.get_status."""
 
@@ -204,7 +207,7 @@ class SystemStatusWifi(TypedDict):
     ssid: str
     up: bool
     channel: int
-    band: str
+    band: WifiBandType
     name: str
     passwd: str | None
 
@@ -281,6 +284,11 @@ class RebootParams(TypedDict):
 # ─── Clients & Static DHCP ───────────────────────────────────────────────────
 
 
+ClientInterfaceType: TypeAlias = (
+    Literal["cable", "2.4G", "5G", "6G", "wifi2g", "wifi5g", "wifi6g"] | str
+)
+
+
 class ClientEntry(TypedDict, total=False):
     """Telemetry and identity details for a connected or offline client."""
 
@@ -288,7 +296,7 @@ class ClientEntry(TypedDict, total=False):
     ip: str
     name: str
     online: bool
-    iface: str
+    iface: ClientInterfaceType
     type: int
     online_time: int
     blocked: bool
@@ -343,11 +351,14 @@ class StaticBindListResponse(TypedDict):
 # ─── Wi-Fi Management ────────────────────────────────────────────────────────
 
 
+WifiEncryptionType: TypeAlias = Literal["none", "psk", "psk2", "sae", "sae-mixed"] | str
+
+
 class WifiInterface(TypedDict):
     """Wi-Fi interface configuration and credentials."""
 
     enabled: bool
-    encryption: str
+    encryption: WifiEncryptionType
     guest: bool
     hidden: bool
     key: str | None
@@ -358,7 +369,7 @@ class WifiInterface(TypedDict):
 class WifiDeviceEntry(TypedDict):
     """Wi-Fi radio device container with its logical interfaces."""
 
-    band: str
+    band: WifiBandType
     device: str
     ifaces: list[WifiInterface]
 
@@ -493,6 +504,11 @@ class TailscaleExitNodesResponse(TypedDict):
 # ─── Cellular / Modem ─────────────────────────────────────────────────────────
 
 
+ModemStatusType: TypeAlias = Literal["registered", "searching", "unregistered"] | str
+
+ModemSimStateType: TypeAlias = Literal["ready", "not_inserted"] | str
+
+
 class ModemEntry(TypedDict):
     """Modem device description."""
 
@@ -500,7 +516,7 @@ class ModemEntry(TypedDict):
     imei: str
     modem_id: int
     model: str
-    status: str
+    status: ModemStatusType
 
 
 class ModemInfoResponse(TypedDict):
@@ -514,7 +530,7 @@ class ModemSimInfoEntry(TypedDict):
 
     iccid: str
     imsi: str
-    sim_state: str
+    sim_state: ModemSimStateType
 
 
 class ModemSimSignalEntry(TypedDict):
@@ -583,7 +599,7 @@ class RepeaterScanEncryption(TypedDict):
 class RepeaterScanEntry(TypedDict):
     """Discovered Wi-Fi access point in repeater.scan."""
 
-    band: str
+    band: WifiBandType
     bssid: str
     channel: int
     encryption: RepeaterScanEncryption
@@ -826,6 +842,7 @@ __all__ = [
     "ChallengeParams",
     "ChallengeResponse",
     "ClientEntry",
+    "ClientInterfaceType",
     "ClientsResponse",
     "ConnectedClients",
     "DdnsConfigResponse",
@@ -833,7 +850,6 @@ __all__ = [
     "DdnsStatusResponse",
     "DhcpLeaseEntry",
     "DhcpLeasesResponse",
-    "DdnsStatusResponse",
     "DnsConfigResponse",
     "EdgeRouterStatusResponse",
     "EmptyResponse",
@@ -853,6 +869,8 @@ __all__ = [
     "ModemInfoResponse",
     "ModemSimInfoEntry",
     "ModemSimSignalEntry",
+    "ModemSimStateType",
+    "ModemStatusType",
     "OvpnConfigResponse",
     "OvpnGroupConfig",
     "OvpnListEntry",
@@ -895,9 +913,11 @@ __all__ = [
     "VpnPolicyResponse",
     "VpnPolicyVlanEntry",
     "VpnPolicyVlanPolicy",
+    "WifiBandType",
     "WifiConfigResponse",
     "WifiConfigSetParams",
     "WifiDeviceEntry",
+    "WifiEncryptionType",
     "WifiIfacesMap",
     "WifiInterface",
     "WireguardClientListItem",

@@ -2,7 +2,16 @@
 
 from enum import IntEnum, StrEnum
 
-from .types import ClientEntry, ConnectedClients, SystemStatusMetrics
+from .types import (
+    ClientEntry,
+    ClientInterfaceType,
+    ConnectedClients,
+    ModemSimStateType,
+    ModemStatusType,
+    SystemStatusMetrics,
+    WifiBandType,
+    WifiEncryptionType,
+)
 
 
 class TailscaleConnection(IntEnum):
@@ -20,6 +29,8 @@ class WifiBand(StrEnum):
 
     BAND_2G = "2G"
     BAND_5G = "5G"
+    BAND_6G = "6G"
+    BAND_2_4G = "2.4G"
 
 
 class WifiEncryption(StrEnum):
@@ -38,6 +49,9 @@ class ClientInterface(StrEnum):
     CABLE = "cable"
     WIFI_2G = "wifi2g"
     WIFI_5G = "wifi5g"
+    BAND_2_4G = "2.4G"
+    BAND_5G = "5G"
+    BAND_6G = "6G"
 
 
 class ModemStatus(StrEnum):
@@ -58,11 +72,16 @@ class ModemSimState(StrEnum):
 __all__ = [
     "ClientEntry",
     "ClientInterface",
+    "ClientInterfaceType",
     "ConnectedClients",
     "ModemSimState",
+    "ModemSimStateType",
     "ModemStatus",
+    "ModemStatusType",
     "SystemStatusMetrics",
     "TailscaleConnection",
     "WifiBand",
+    "WifiBandType",
     "WifiEncryption",
+    "WifiEncryptionType",
 ]
