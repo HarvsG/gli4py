@@ -425,6 +425,7 @@ class WireguardClientListItem(TypedDict):
     name: str
     group_id: int
     peer_id: int
+    tunnel_id: NotRequired[int]
 
 
 class WireguardStatusItem(TypedDict):
