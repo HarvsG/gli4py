@@ -83,6 +83,7 @@ class MockRouter:
         self.last_salt: str = ""
 
         self._endpoint_overrides: dict[tuple[str, str], Any] = {}
+        self._background_tasks: set[asyncio.Task[Any]] = set()
         self._reset_in_memory_state()
 
     def _reset_in_memory_state(self) -> None:
@@ -127,7 +128,7 @@ class MockRouter:
 
     async def start(self) -> "MockRouter":
         """Start the in-process mock HTTP server."""
-        self._runner = web.AppRunner(self._app)
+        self._runner = web.AppRunner(self._app, access_log=None)
         await self._runner.setup()
         self._site = web.TCPSite(self._runner, self.host, self.port)
         await self._site.start()
@@ -142,6 +143,12 @@ class MockRouter:
 
     async def stop(self) -> None:
         """Stop server and clean up active sessions."""
+        for task in list(self._background_tasks):
+            task.cancel()
+        if self._background_tasks:
+            await asyncio.gather(*self._background_tasks, return_exceptions=True)
+            self._background_tasks.clear()
+
         if self._runner is not None:
             await self._runner.cleanup()
             self._runner = None
@@ -438,7 +445,9 @@ class MockRouter:
             return copy.deepcopy(self.system_load)
         if func == "reboot":
             delay = opt_args.get("delay", 0) if isinstance(opt_args, dict) else 0
-            asyncio.create_task(self._simulate_reboot())
+            task = asyncio.create_task(self._simulate_reboot())
+            self._background_tasks.add(task)
+            task.add_done_callback(self._background_tasks.discard)
             return {"delay": delay}
         return None
 

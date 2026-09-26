@@ -15,10 +15,13 @@ python = "^3.11"
 uplink = "0.10.0"
 libpass = "^1.8.0"
 semver = "^3.0.0"
+aiohttp = { version = ">=3.8.4", optional = true }
+
+[tool.poetry.extras]
+mock = ["aiohttp"]
 
 [tool.poetry.group.dev.dependencies]
 requests = "^2.27.1"
-aiohttp = "^3.8.4"
 json2json = "^0.1.0"
 pytest = ">=7.2.2"
 pytest-asyncio = ">=0.24.0"

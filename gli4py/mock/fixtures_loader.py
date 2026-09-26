@@ -2,13 +2,23 @@
 
 import copy
 import json
+import os
 from pathlib import Path
 from typing import Any
 
 # Default location for test fixtures
-DEFAULT_FIXTURES_DIR = (
-    Path(__file__).resolve().parent.parent.parent / "tests" / "fixtures"
-)
+PACKAGE_FIXTURES_DIR = Path(__file__).resolve().parent / "fixtures"
+
+
+def _resolve_default_fixtures_dir() -> Path:
+    if "GLI4PY_FIXTURES_DIR" in os.environ:
+        env_dir = Path(os.environ["GLI4PY_FIXTURES_DIR"])
+        if env_dir.exists():
+            return env_dir
+    return PACKAGE_FIXTURES_DIR
+
+
+DEFAULT_FIXTURES_DIR = _resolve_default_fixtures_dir()
 
 
 class FixturesLoader:
