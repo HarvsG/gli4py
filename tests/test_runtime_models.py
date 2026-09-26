@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import logging
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -282,3 +283,33 @@ async def test_unexpected_response_structure_rejection() -> None:
     ):
         with pytest.raises(InvalidFieldValue):
             await client.list_all_clients()
+
+
+def test_debug_logging_extra_and_missing_keys(caplog: pytest.LogCaptureFixture) -> None:
+    """Test that extra keys and missing keys are debug logged when DEBUG is enabled."""
+    caplog.set_level(logging.DEBUG, logger="gli4py.models")
+
+    # 1. Payload with extra unknown key
+    ChallengeResponse.from_dict(
+        {"alg": 1, "salt": "s", "nonce": "n", "hash-method": "md5", "extra_foo": "bar"}
+    )
+    assert (
+        "[ChallengeResponse] Unexpected extra key(s) in API response: ['extra_foo']"
+        in caplog.text
+    )
+
+    # 2. Payload with missing keys (falling back to defaults)
+    caplog.clear()
+    ChallengeResponse.from_dict({"alg": 1, "salt": "s"})
+    assert (
+        "[ChallengeResponse] Key(s) missing from API response (using defaults): ['hash-method', 'nonce']"
+        in caplog.text
+    )
+
+
+def test_debug_logging_disabled_at_info_level(caplog: pytest.LogCaptureFixture) -> None:
+    """Test that no debug logs are emitted when log level is INFO or higher."""
+    caplog.set_level(logging.INFO, logger="gli4py.models")
+    ChallengeResponse.from_dict({"alg": 1, "extra_foo": "bar"})
+    assert "Unexpected extra key(s)" not in caplog.text
+    assert "Key(s) missing from API response" not in caplog.text

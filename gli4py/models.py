@@ -7,6 +7,7 @@ reliable runtime deserialization and validation of API responses from GL.iNet ro
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Iterator, Mapping
 from dataclasses import dataclass, field, fields
 from enum import IntEnum, StrEnum
@@ -15,6 +16,8 @@ from typing import Any, Literal, TypeAlias
 from mashumaro import field_options
 from mashumaro.config import BaseConfig
 from mashumaro.mixins.dict import DataClassDictMixin
+
+_LOGGER = logging.getLogger(__name__)
 
 # ─── Enumerations ─────────────────────────────────────────────────────────────
 
@@ -104,6 +107,52 @@ class BaseModel(Mapping[str, Any], DataClassDictMixin):
         """Mashumaro model configuration."""
 
         serialize_by_alias = True
+
+    @classmethod
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        super().__init_subclass__(**kwargs)
+        orig_mashumaro = getattr(cls, "__mashumaro_from_dict__", None)
+        if callable(orig_mashumaro):
+
+            def _wrapped_from_dict(
+                subcls: type[Any], /, d: Mapping[str, Any], **kw: Any
+            ) -> Any:
+                if isinstance(d, Mapping) and _LOGGER.isEnabledFor(logging.DEBUG):
+                    expected_keys: set[str] = set()
+                    for f in fields(subcls):
+                        expected_keys.add(f.name)
+                        alias = f.metadata.get("alias")
+                        if alias:
+                            expected_keys.add(alias)
+
+                    payload_keys = set(d.keys())
+
+                    extra = payload_keys - expected_keys
+                    if extra:
+                        _LOGGER.debug(
+                            "[%s] Unexpected extra key(s) in API response: %s",
+                            subcls.__name__,
+                            sorted(extra),
+                        )
+
+                    missing = {
+                        (f.metadata.get("alias") or f.name)
+                        for f in fields(subcls)
+                        if f.name not in payload_keys
+                        and f.metadata.get("alias") not in payload_keys
+                    }
+                    if missing:
+                        _LOGGER.debug(
+                            "[%s] Key(s) missing from API response (using defaults): %s",
+                            subcls.__name__,
+                            sorted(missing),
+                        )
+
+                return orig_mashumaro(d, **kw)  # pylint: disable=not-callable
+
+            wrapped_cm = classmethod(_wrapped_from_dict)
+            setattr(cls, "__mashumaro_from_dict__", wrapped_cm)
+            setattr(cls, "from_dict", wrapped_cm)
 
     def __getitem__(self, key: str) -> Any:
         if hasattr(self, key):
