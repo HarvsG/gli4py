@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "gli4py"
-version = "0.1.0-beta.3"
+version = "0.1.0-beta.4"
 description = "A python 3 API wrapper for GL-inet routers for consumption by Home Assistant"
 authors = ["HarvsG <doctor@codingdoctor.co.uk>"]
 license = "GNU GENERAL PUBLIC LICENSE"
@@ -16,6 +16,7 @@ uplink = "0.10.0"
 libpass = "^1.8.0"
 semver = "^3.0.0"
 aiohttp = { version = ">=3.8.4", optional = true }
+mashumaro = ">=3.14"
 
 [tool.poetry.extras]
 mock = ["aiohttp"]
