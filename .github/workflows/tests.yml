@@ -53,6 +53,7 @@ jobs:
 
       - name: Run tests
         run: poetry run pytest --disruptive-tests --cov=gli4py --cov-report=term-missing --cov-report=xml --cov-fail-under=78
+        run: poetry run pytest --disruptive-tests --cov=gli4py --cov-report=term-missing --cov-report=xml --cov-fail-under=95
 
       - name: Verify package build
         run: poetry build --no-interaction

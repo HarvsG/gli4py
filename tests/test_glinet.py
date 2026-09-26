@@ -2,12 +2,15 @@
 # pylint: disable=protected-access,duplicate-code
 
 from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from requests import exceptions
 from semver import Version
 
 from gli4py.error_codes import ERROR_CODES
 from gli4py.error_handling import APIClientError
+from gli4py.error_handling import APIClientError, AuthenticationError
 from gli4py.glinet import NEW_VPN_CLIENT_VERSION, GLinet
 from gli4py.helpers import normalize_url
 from gli4py.models import TailscaleConnection
@@ -511,3 +514,346 @@ def test_helpers_normalize_url() -> None:
     assert normalize_url("192.168.0.4") == "http://192.168.0.4/rpc"
     assert normalize_url("http://192.168.0.4/") == "http://192.168.0.4/rpc"
     assert normalize_url("https://192.168.0.4:8443") == "https://192.168.0.4:8443/rpc"
+
+
+@pytest.mark.asyncio
+async def test_router_reachable_falsy_challenge() -> None:
+    """Test router_reachable returns False when challenge returns empty dict."""
+    client = GLinet(sid="test_sid")
+    with patch.object(client, "_challenge", new=AsyncMock(return_value={})):
+        assert await client.router_reachable() is False
+
+
+@pytest.mark.asyncio
+async def test_login_request_exception() -> None:
+    """Test login wraps RequestException."""
+    client = GLinet()
+    with (
+        patch.object(
+            client,
+            "_challenge",
+            new=AsyncMock(side_effect=exceptions.RequestException("timeout")),
+        ),
+        pytest.raises(exceptions.RequestException),
+    ):
+        await client.login("root", "password")
+
+
+@pytest.mark.asyncio
+async def test_login_key_error() -> None:
+    """Test login wraps KeyError/ValueError as KeyError."""
+    client = GLinet()
+    with (
+        patch.object(
+            client, "_challenge", new=AsyncMock(return_value={"alg": 1, "salt": "s"})
+        ),
+        pytest.raises(KeyError, match="Parameter Exception"),
+    ):
+        await client.login("root", "password")
+
+
+@pytest.mark.asyncio
+async def test_login_generic_api_client_error() -> None:
+    """Test login wraps non-auth APIClientError with descriptive message."""
+    client = GLinet()
+
+    class CustomAPIError(APIClientError):
+        pass
+
+    with (
+        patch.object(
+            client,
+            "_challenge",
+            new=AsyncMock(side_effect=CustomAPIError("some error")),
+        ),
+        pytest.raises(APIClientError, match="CustomAPIError"),
+    ):
+        await client.login("root", "password")
+
+
+@pytest.mark.asyncio
+async def test_login_authentication_error_reraise() -> None:
+    """Test login re-raises AuthenticationError without wrapping."""
+    client = GLinet()
+    with (
+        patch.object(
+            client,
+            "_challenge",
+            new=AsyncMock(side_effect=AuthenticationError("bad creds")),
+        ),
+        pytest.raises(AuthenticationError, match="bad creds"),
+    ):
+        await client.login("root", "password")
+
+
+@pytest.mark.asyncio
+async def test_list_static_clients() -> None:
+    """Test list_static_clients calls through to _request."""
+    client = GLinet(sid="test_sid")
+    fake_result = {"clients": [{"mac": "AA:BB:CC:DD:EE:FF"}]}
+    with patch.object(client, "_request", new=AsyncMock(return_value=fake_result)):
+        result = await client.list_static_clients()
+        assert result == fake_result
+
+
+@pytest.mark.asyncio
+async def test_wireguard_client_state_auto_fetches_firmware() -> None:
+    """Test wireguard_client_state calls router_info when firmware_version is None."""
+    client = GLinet(sid="test_sid")
+    assert client._firmware_version is None
+    fake_info = {"firmware_version": "4.3.25", "model": "b1300"}
+    fake_status = {"name": "wg0", "status": 0}
+    with (
+        patch.object(
+            client, "_request", new=AsyncMock(side_effect=[fake_info, fake_status])
+        ),
+    ):
+        state = await client.wireguard_client_state()
+        assert state == [fake_status]
+        assert client._firmware_version == Version.parse("4.3.25")
+
+
+@pytest.mark.asyncio
+async def test_wireguard_set_client_enabled_auto_fetches_firmware() -> None:
+    """Test _wireguard_set_client_enabled calls router_info when firmware_version is None."""
+    client = GLinet(sid="test_sid")
+    assert client._firmware_version is None
+    fake_info = {"firmware_version": "4.8.2", "model": "mt6000"}
+    fake_tunnel_result = {"tunnel_id": 100}
+    with patch.object(
+        client, "_request", new=AsyncMock(side_effect=[fake_info, fake_tunnel_result])
+    ):
+        result = await client.wireguard_client_start(group_id=5, peer_or_tunnel_id=100)
+        assert result == fake_tunnel_result
+        assert client._firmware_version == Version.parse("4.8.2")
+
+
+@pytest.mark.asyncio
+async def test_tailscale_get_config_api_error() -> None:
+    """Test _tailscale_get_config returns False when API raises."""
+    client = GLinet(sid="test_sid")
+    with patch.object(
+        client, "_request", new=AsyncMock(side_effect=APIClientError("fail"))
+    ):
+        result = await client._tailscale_get_config()
+        assert result is False
+
+
+@pytest.mark.asyncio
+async def test_tailscale_configured_unconfigured() -> None:
+    """Test tailscale_configured returns False when status is [] and config is unavailable."""
+    client = GLinet(sid="test_sid")
+    with (
+        patch.object(client, "_tailscale_status", new=AsyncMock(return_value=[])),
+        patch.object(
+            client, "_tailscale_get_config", new=AsyncMock(return_value=False)
+        ),
+    ):
+        assert await client.tailscale_configured() is False
+
+
+@pytest.mark.asyncio
+async def test_tailscale_start_already_connected() -> None:
+    """Test tailscale_start returns True immediately when status is 3 (connected)."""
+    client = GLinet(sid="test_sid")
+    with patch.object(
+        client, "_tailscale_status", new=AsyncMock(return_value={"status": 3})
+    ):
+        assert await client.tailscale_start() is True
+
+
+@pytest.mark.asyncio
+async def test_tailscale_start_depth_exceeded() -> None:
+    """Test tailscale_start raises ConnectionError after 10 retries."""
+    client = GLinet(sid="test_sid")
+    with pytest.raises(ConnectionError, match="10 times"):
+        await client.tailscale_start(depth=11)
+
+
+@pytest.mark.asyncio
+async def test_tailscale_start_from_empty_list() -> None:
+    """Test tailscale_start enables config and retries when status returns []."""
+    client = GLinet(sid="test_sid")
+    with (
+        patch.object(
+            client,
+            "_tailscale_status",
+            new=AsyncMock(side_effect=[[], {"status": 3}]),
+        ),
+        patch.object(
+            client, "_tailscale_set_config", new=AsyncMock(return_value={})
+        ) as mock_set,
+    ):
+        result = await client.tailscale_start()
+        assert result is True
+        mock_set.assert_awaited_once_with({"enabled": True})
+
+
+@pytest.mark.asyncio
+async def test_tailscale_start_unexpected_list() -> None:
+    """Test tailscale_start raises on non-empty list response."""
+    client = GLinet(sid="test_sid")
+    with (
+        patch.object(
+            client,
+            "_tailscale_status",
+            new=AsyncMock(return_value=["unexpected"]),
+        ),
+        pytest.raises(ConnectionError, match="Unexpected list"),
+    ):
+        await client.tailscale_start()
+
+
+@pytest.mark.asyncio
+async def test_tailscale_start_connecting_then_connected() -> None:
+    """Test tailscale_start waits when status is 4 then succeeds when status becomes 3."""
+    client = GLinet(sid="test_sid")
+    with patch.object(
+        client,
+        "_tailscale_status",
+        new=AsyncMock(side_effect=[{"status": 4}, {"status": 3}]),
+    ):
+        result = await client.tailscale_start()
+        assert result is True
+
+
+@pytest.mark.asyncio
+async def test_tailscale_start_connecting_then_fails() -> None:
+    """Test tailscale_start raises when status is 4 then doesn't become 3."""
+    client = GLinet(sid="test_sid")
+    with (
+        patch.object(
+            client,
+            "_tailscale_status",
+            new=AsyncMock(side_effect=[{"status": 4}, {"status": 0}]),
+        ),
+        pytest.raises(ConnectionError, match="Did not try to start"),
+    ):
+        await client.tailscale_start()
+
+
+@pytest.mark.asyncio
+async def test_tailscale_start_connecting_then_returns_list() -> None:
+    """Test tailscale_start when status 4 re-check returns a list (keeps old status)."""
+    client = GLinet(sid="test_sid")
+    with (
+        patch.object(
+            client,
+            "_tailscale_status",
+            new=AsyncMock(side_effect=[{"status": 4}, []]),
+        ),
+        pytest.raises(ConnectionError, match="Did not try to start"),
+    ):
+        await client.tailscale_start()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("status", [1, 2])
+async def test_tailscale_start_auth_incomplete(status: int) -> None:
+    """Test tailscale_start raises ConnectionAbortedError for auth-incomplete statuses."""
+    client = GLinet(sid="test_sid")
+    with (
+        patch.object(
+            client,
+            "_tailscale_status",
+            new=AsyncMock(return_value={"status": status}),
+        ),
+        pytest.raises(ConnectionAbortedError, match="authorisation is not complete"),
+    ):
+        await client.tailscale_start()
+
+
+@pytest.mark.asyncio
+async def test_tailscale_start_unknown_status() -> None:
+    """Test tailscale_start raises ConnectionError for unknown status values."""
+    client = GLinet(sid="test_sid")
+    with (
+        patch.object(
+            client,
+            "_tailscale_status",
+            new=AsyncMock(return_value={"status": 99}),
+        ),
+        pytest.raises(ConnectionError, match="Unknown connection status"),
+    ):
+        await client.tailscale_start()
+
+
+@pytest.mark.asyncio
+async def test_tailscale_stop_already_disconnected() -> None:
+    """Test tailscale_stop returns True when status is already []."""
+    client = GLinet(sid="test_sid")
+    with patch.object(client, "_tailscale_status", new=AsyncMock(return_value=[])):
+        assert await client.tailscale_stop() is True
+
+
+@pytest.mark.asyncio
+async def test_tailscale_stop_depth_exceeded() -> None:
+    """Test tailscale_stop raises ConnectionError after 10 retries."""
+    client = GLinet(sid="test_sid")
+    with pytest.raises(ConnectionError, match="10 times"):
+        await client.tailscale_stop(depth=11)
+
+
+@pytest.mark.asyncio
+async def test_tailscale_stop_unexpected_list() -> None:
+    """Test tailscale_stop raises on non-empty list response."""
+    client = GLinet(sid="test_sid")
+    with (
+        patch.object(
+            client,
+            "_tailscale_status",
+            new=AsyncMock(return_value=["unexpected"]),
+        ),
+        pytest.raises(ConnectionError, match="Unexpected list"),
+    ):
+        await client.tailscale_stop()
+
+
+@pytest.mark.asyncio
+async def test_tailscale_stop_connected_then_disconnects() -> None:
+    """Test tailscale_stop disables config and retries until disconnected."""
+    client = GLinet(sid="test_sid")
+    with (
+        patch.object(
+            client,
+            "_tailscale_status",
+            new=AsyncMock(side_effect=[{"status": 3}, []]),
+        ),
+        patch.object(
+            client, "_tailscale_set_config", new=AsyncMock(return_value={})
+        ) as mock_set,
+    ):
+        result = await client.tailscale_stop()
+        assert result is True
+        mock_set.assert_awaited_once_with({"enabled": False})
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("status", [1, 2])
+async def test_tailscale_stop_auth_incomplete(status: int) -> None:
+    """Test tailscale_stop raises ConnectionAbortedError for auth-incomplete statuses."""
+    client = GLinet(sid="test_sid")
+    with (
+        patch.object(
+            client,
+            "_tailscale_status",
+            new=AsyncMock(return_value={"status": status}),
+        ),
+        pytest.raises(ConnectionAbortedError, match="Disconnection not attempted"),
+    ):
+        await client.tailscale_stop()
+
+
+@pytest.mark.asyncio
+async def test_tailscale_stop_unknown_status() -> None:
+    """Test tailscale_stop raises ConnectionError for unknown status values."""
+    client = GLinet(sid="test_sid")
+    with (
+        patch.object(
+            client,
+            "_tailscale_status",
+            new=AsyncMock(return_value={"status": 99}),
+        ),
+        pytest.raises(ConnectionError, match="Unknown connection status"),
+    ):
+        await client.tailscale_stop()

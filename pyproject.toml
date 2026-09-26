@@ -62,6 +62,9 @@ markers = [
     "disruptive: tests that modify router configuration or reboot (pass --disruptive-tests to run)",
 ]
 
+[tool.coverage.run]
+omit = ["gli4py/enumeration.py"]
+
 [tool.ruff]
 target-version = "py311"
 line-length = 88
