@@ -370,8 +370,6 @@ class GLinet(Consumer):
         clients: ConnectedClients = {}
         all_clients = await self.list_all_clients()
         filter_iface = str(interface) if interface is not None else None
-        if not isinstance(all_clients, ClientsResponse):
-            all_clients = ClientsResponse.from_dict(all_clients)
         for client in all_clients.clients:
             if client.online is True:
                 if filter_iface is None or client.iface == filter_iface:
@@ -397,8 +395,6 @@ class GLinet(Consumer):
         If redact_keys, all key values will be set to None.
         """
         wifi_config = await self._wifi_config_get()
-        if not isinstance(wifi_config, WifiConfigResponse):
-            wifi_config = WifiConfigResponse.from_dict(wifi_config)
         ifaces: WifiIfacesMap = {}
         for dev in wifi_config.res:
             for iface in dev.ifaces:
@@ -549,6 +545,7 @@ class GLinet(Consumer):
         raw = await self._request(
             self.gen_sid_payload("call", ["tailscale", "get_status"], self.sid)
         )
+        # Router API returns an empty list [] when Tailscale is unconfigured/stopped, or a status dict when running
         if isinstance(raw, dict):
             return TailscaleStatusResponse.from_dict(raw)
         return raw

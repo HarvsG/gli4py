@@ -12,10 +12,12 @@ from gli4py.glinet import NEW_VPN_CLIENT_VERSION, GLinet
 from gli4py.helpers import normalize_url
 from gli4py.models import (
     ClientInterface,
+    ClientsResponse,
     ModemSimState,
     ModemStatus,
     TailscaleConnection,
     WifiBand,
+    WifiConfigResponse,
     WifiEncryption,
 )
 
@@ -207,7 +209,9 @@ async def test_wifi_ifaces_get(redact_keys: bool, expected_key: str | None) -> N
         ]
     }
     with patch.object(
-        client, "_wifi_config_get", new=AsyncMock(return_value=fake_wifi_config)
+        client,
+        "_wifi_config_get",
+        new=AsyncMock(return_value=WifiConfigResponse.from_dict(fake_wifi_config)),
     ):
         ifaces = await client.wifi_ifaces_get(redact_keys=redact_keys)
         assert set(ifaces.keys()) == {"wifi2g", "wifi5g"}
@@ -389,7 +393,9 @@ async def test_connected_clients_filtering() -> None:
         ]
     }
     with patch.object(
-        client, "list_all_clients", new=AsyncMock(return_value=mock_all_clients)
+        client,
+        "list_all_clients",
+        new=AsyncMock(return_value=ClientsResponse.from_dict(mock_all_clients)),
     ):
         online = await client.connected_clients()
         assert set(online.keys()) == {"AA:BB:CC:11:22:33", "AA:BB:CC:77:88:99"}
@@ -430,7 +436,9 @@ async def test_connected_clients_filtering_by_interface() -> None:
         ]
     }
     with patch.object(
-        client, "list_all_clients", new=AsyncMock(return_value=mock_all_clients)
+        client,
+        "list_all_clients",
+        new=AsyncMock(return_value=ClientsResponse.from_dict(mock_all_clients)),
     ):
         cable_clients = await client.connected_clients(ClientInterface.CABLE)
         assert list(cable_clients.keys()) == ["AA:BB:CC:11:22:33"]
