@@ -138,7 +138,10 @@ class BaseModel(Mapping[str, Any], DataClassDictMixin):
     def get(self, key: str, default: Any = None) -> Any:
         """Return the value for key if key is in the model, else default."""
         try:
-            return self[key]
+            val = self[key]
+            if val is None and default is not None:
+                return default
+            return val
         except KeyError:
             return default
 
@@ -147,6 +150,12 @@ class BaseModel(Mapping[str, Any], DataClassDictMixin):
 
     def __len__(self) -> int:
         return len(fields(self))
+
+    def __bool__(self) -> bool:
+        return any(
+            val is not None and val != "" and val != [] and val != {}
+            for val in self.values()
+        )
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, type(self)):

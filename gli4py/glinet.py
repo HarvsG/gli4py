@@ -24,7 +24,6 @@ from uplink import (
 
 from gli4py.models import (
     ChallengeResponse,
-    ClientEntry,
     ClientInterface,
     ClientsResponse,
     ConnectedClients,
@@ -154,8 +153,6 @@ class GLinet(Consumer):
         """Requests a challenge from the GL-inet API to start the login process."""
         challenge_data = self.gen_no_auth_payload("challenge", {"username": username})
         raw = await self._request(challenge_data)
-        if isinstance(raw, ChallengeResponse):
-            return raw
         return ChallengeResponse.from_dict(raw)
 
     async def _get_sid(self, username: str, hsh: str) -> LoginResponse:
@@ -164,8 +161,6 @@ class GLinet(Consumer):
             "login", {"username": username, "hash": hsh}
         )
         raw = await self._request(login_data)
-        if isinstance(raw, LoginResponse):
-            return raw
         return LoginResponse.from_dict(raw)
 
     async def router_reachable(self, username: str = "root") -> bool:
@@ -260,11 +255,7 @@ class GLinet(Consumer):
         raw = await self._request(
             self.gen_sid_payload("call", ["system", "get_info"], self.sid)
         )
-        response = (
-            raw
-            if isinstance(raw, SystemInfoResponse)
-            else SystemInfoResponse.from_dict(raw)
-        )
+        response = SystemInfoResponse.from_dict(raw)
 
         # Sanity check for firmware version
         if response.firmware_version:
@@ -280,44 +271,28 @@ class GLinet(Consumer):
         raw = await self._request(
             self.gen_sid_payload("call", ["modem", "get_info"], self.sid)
         )
-        return (
-            raw
-            if isinstance(raw, ModemInfoResponse)
-            else ModemInfoResponse.from_dict(raw)
-        )
+        return ModemInfoResponse.from_dict(raw)
 
     async def modem_sim_info(self) -> list[ModemSimInfoEntry]:
         """Retrieves information about the modems, requires authentication."""
         raw = await self._request(
             self.gen_sid_payload("call", ["modem", "get_sim_info"], self.sid)
         )
-        return [
-            x if isinstance(x, ModemSimInfoEntry) else ModemSimInfoEntry.from_dict(x)
-            for x in raw
-        ]
+        return [ModemSimInfoEntry.from_dict(x) for x in raw]
 
     async def modem_sim_signal(self) -> list[ModemSimSignalEntry]:
         """Retrieves information about the modems, requires authentication."""
         raw = await self._request(
             self.gen_sid_payload("call", ["modem", "get_sim_signal"], self.sid)
         )
-        return [
-            x
-            if isinstance(x, ModemSimSignalEntry)
-            else ModemSimSignalEntry.from_dict(x)
-            for x in raw
-        ]
+        return [ModemSimSignalEntry.from_dict(x) for x in raw]
 
     async def router_get_status(self) -> RouterStatusResponse:
         """Retrieves the status of the router, requires authentication."""
         raw = await self._request(
             self.gen_sid_payload("call", ["system", "get_status"], self.sid)
         )
-        response = (
-            raw
-            if isinstance(raw, RouterStatusResponse)
-            else RouterStatusResponse.from_dict(raw)
-        )
+        response = RouterStatusResponse.from_dict(raw)
 
         # remove wifi passwords
         if response.wifi:
@@ -330,22 +305,14 @@ class GLinet(Consumer):
         raw = await self._request(
             self.gen_sid_payload("call", ["system", "get_load"], self.sid)
         )
-        return (
-            raw
-            if isinstance(raw, SystemLoadResponse)
-            else SystemLoadResponse.from_dict(raw)
-        )
+        return SystemLoadResponse.from_dict(raw)
 
     async def router_mac(self) -> MaccloneResponse:
         """Retrieves the MAC address of the router, requires authentication."""
         raw = await self._request(
             self.gen_sid_payload("call", ["macclone", "get_mac"], self.sid)
         )
-        return (
-            raw
-            if isinstance(raw, MaccloneResponse)
-            else MaccloneResponse.from_dict(raw)
-        )
+        return MaccloneResponse.from_dict(raw)
 
     async def router_reboot(self, delay: int = 0) -> EmptyResponse:
         """Reboots the router, requires authentication."""
@@ -361,9 +328,8 @@ class GLinet(Consumer):
             self.gen_sid_payload("call", ["diag", "ping", {"addr": address}], self.sid)
         )
         if isinstance(result, dict):
-            result = SystemPingResponse.from_dict(result)
-        if isinstance(result, SystemPingResponse):
-            ping_output = result.ping_result or ""
+            ping_resp = SystemPingResponse.from_dict(result)
+            ping_output = ping_resp.ping_result or ""
             return bool(
                 ping_output
                 and "100% packet loss" not in ping_output
@@ -376,31 +342,21 @@ class GLinet(Consumer):
         raw = await self._request(
             self.gen_sid_payload("call", ["edgerouter", "get_status"], self.sid)
         )
-        return (
-            raw
-            if isinstance(raw, EdgeRouterStatusResponse)
-            else EdgeRouterStatusResponse.from_dict(raw)
-        )
+        return EdgeRouterStatusResponse.from_dict(raw)
 
     async def list_all_clients(self) -> ClientsResponse:
         """Gets all clients connected to the router."""
         raw = await self._request(
             self.gen_sid_payload("call", ["clients", "get_list"], self.sid)
         )
-        return (
-            raw if isinstance(raw, ClientsResponse) else ClientsResponse.from_dict(raw)
-        )
+        return ClientsResponse.from_dict(raw)
 
     async def list_static_clients(self) -> StaticBindListResponse:
         """Gets all static clients connected to the router."""
         raw = await self._request(
             self.gen_sid_payload("call", ["lan", "get_static_bind_list"], self.sid)
         )
-        return (
-            raw
-            if isinstance(raw, StaticBindListResponse)
-            else StaticBindListResponse.from_dict(raw)
-        )
+        return StaticBindListResponse.from_dict(raw)
 
     async def connected_clients(
         self, interface: ClientInterface | str | None = None
@@ -414,14 +370,9 @@ class GLinet(Consumer):
         clients: ConnectedClients = {}
         all_clients = await self.list_all_clients()
         filter_iface = str(interface) if interface is not None else None
-        client_list = (
-            all_clients.clients
-            if isinstance(all_clients, ClientsResponse)
-            else all_clients.get("clients", [])
-        )
-        for client in client_list:
-            if not isinstance(client, ClientEntry):
-                client = ClientEntry.from_dict(client)
+        if not isinstance(all_clients, ClientsResponse):
+            all_clients = ClientsResponse.from_dict(all_clients)
+        for client in all_clients.clients:
             if client.online is True:
                 if filter_iface is None or client.iface == filter_iface:
                     clients[client.mac] = client
@@ -432,11 +383,7 @@ class GLinet(Consumer):
         raw = await self._request(
             self.gen_sid_payload("call", ["wifi", "get_config"], self.sid)
         )
-        return (
-            raw
-            if isinstance(raw, WifiConfigResponse)
-            else WifiConfigResponse.from_dict(raw)
-        )
+        return WifiConfigResponse.from_dict(raw)
 
     async def _wifi_config_set(self, config: WifiConfigSetParams) -> EmptyResponse:
         """Sets the WiFi configuration on the router."""
@@ -478,11 +425,7 @@ class GLinet(Consumer):
         raw = await self._request(
             self.gen_sid_payload("call", ["wg-client", "get_all_config_list"], self.sid)
         )
-        response = (
-            raw
-            if isinstance(raw, WireguardConfigListResponse)
-            else WireguardConfigListResponse.from_dict(raw)
-        )
+        response = WireguardConfigListResponse.from_dict(raw)
         configs: list[WireguardClientListItem] = []
         for item in response.config_list:
             peers = item.peers
@@ -513,21 +456,12 @@ class GLinet(Consumer):
             raw = await self._request(
                 self.gen_sid_payload("call", ["wg-client", "get_status"], self.sid)
             )
-            old_item = (
-                raw
-                if isinstance(raw, WireguardStatusItem)
-                else WireguardStatusItem.from_dict(raw)
-            )
-            return [old_item]
+            return [WireguardStatusItem.from_dict(raw)]
 
         raw = await self._request(
             self.gen_sid_payload("call", ["vpn-client", "get_status"], self.sid)
         )
-        vpn_status = (
-            raw
-            if isinstance(raw, VpnClientStatusResponse)
-            else VpnClientStatusResponse.from_dict(raw)
-        )
+        vpn_status = VpnClientStatusResponse.from_dict(raw)
         return vpn_status.status_list
 
     async def wireguard_client_start(
@@ -592,11 +526,7 @@ class GLinet(Consumer):
             raw = await self._request(
                 self.gen_sid_payload("call", ["tailscale", "get_config"], self.sid)
             )
-            return (
-                raw
-                if isinstance(raw, TailscaleConfigResponse)
-                else TailscaleConfigResponse.from_dict(raw)
-            )
+            return TailscaleConfigResponse.from_dict(raw)
         except APIClientError:
             return False
 
@@ -607,12 +537,7 @@ class GLinet(Consumer):
         current_config = await self._request(
             self.gen_sid_payload("call", ["tailscale", "get_config"], self.sid)
         )
-        curr_dict = (
-            current_config.to_dict()
-            if isinstance(current_config, TailscaleConfigResponse)
-            else dict(current_config)
-        )
-        new_config = curr_dict | dict(config_updates)
+        new_config = dict(current_config) | dict(config_updates)
         return await self._request(
             self.gen_sid_payload(
                 "call", ["tailscale", "set_config", new_config], self.sid
