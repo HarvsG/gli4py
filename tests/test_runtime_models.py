@@ -1,4 +1,5 @@
 """Tests verifying runtime dataclass models and strict type enforcement with mashumaro."""
+# pylint: disable=protected-access,too-many-locals,too-many-statements,unsubscriptable-object,unsupported-membership-test
 
 from __future__ import annotations
 

@@ -3,6 +3,7 @@
 This module provides strictly-typed dataclasses paired with mashumaro for fast,
 reliable runtime deserialization and validation of API responses from GL.iNet routers.
 """
+# pylint: disable=too-many-lines
 
 from __future__ import annotations
 
@@ -100,6 +101,8 @@ class BaseModel(Mapping[str, Any], DataClassDictMixin):
     """Base dataclass model for API responses with dict-like and mashumaro support."""
 
     class Config(BaseConfig):
+        """Mashumaro model configuration."""
+
         serialize_by_alias = True
 
     def __getitem__(self, key: str) -> Any:
