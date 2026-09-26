@@ -23,6 +23,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 # pylint: disable=protected-access,too-many-branches,too-many-locals,too-many-statements,wrong-import-position
 from gli4py import GLinet  # noqa: E402
 from gli4py.mock import MockRouter  # noqa: E402
+from gli4py.mock.fixtures_loader import PACKAGE_FIXTURES_DIR  # noqa: E402
 
 # Mapping of public GLinet methods to the underlying RPC calls they perform.
 # Formats:
@@ -244,8 +245,6 @@ def check_mock_router_support(errors: list[str]) -> None:
 
 def check_fixtures_existence(errors: list[str]) -> None:
     """Verify that every query endpoint has a corresponding valid fixture in gli4py/mock/fixtures/."""
-    from gli4py.mock.fixtures_loader import PACKAGE_FIXTURES_DIR
-
     fixtures_dir = PACKAGE_FIXTURES_DIR
     if not fixtures_dir.is_dir():
         errors.append(f"Fixtures directory '{fixtures_dir}' not found.")
