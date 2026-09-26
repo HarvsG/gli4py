@@ -42,7 +42,7 @@ jobs:
         working-directory: ha-glinet4-integration
         run: |
           uv sync
-          uv pip install ../gli4py
+          uv pip install "../gli4py[mock]"
 
       - name: Run ha-glinet4-integration tests
         working-directory: ha-glinet4-integration

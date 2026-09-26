@@ -26,12 +26,13 @@ from uplink import AiohttpClient  # noqa: E402
 
 from gli4py import types  # noqa: E402
 from gli4py.glinet import GLinet  # noqa: E402
+from gli4py.mock.fixtures_loader import PACKAGE_FIXTURES_DIR  # noqa: E402
 from gli4py.mock.server import MockRouter  # noqa: E402
 
 # Suppress bug in uplink's AiohttpClient.__del__ during Python shutdown
 AiohttpClient.__del__ = lambda self: None
 
-FIXTURES_DIR = Path(__file__).resolve().parent / "fixtures"
+FIXTURES_DIR = PACKAGE_FIXTURES_DIR
 
 # Mapping between fixture JSON filenames and their corresponding static types
 FIXTURE_TYPE_MAPPING: dict[str, Any] = {

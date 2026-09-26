@@ -36,11 +36,10 @@ jobs:
           cache: "poetry"
 
       - name: Install dependencies
-        run: poetry install --no-interaction
+        run: poetry install --all-extras --no-interaction
 
       - name: Verify documentation and mock completeness
         run: poetry run python .github/scripts/check_completeness.py
 
       - name: Verify no public API breaking changes
         run: poetry run python .github/scripts/check_api_breaking_changes.py
-

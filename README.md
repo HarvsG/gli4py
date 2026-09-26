@@ -56,6 +56,12 @@ GL.iNet routers are built on [OpenWrt](https://openwrt.org/), providing extensiv
 pip install gli4py
 ```
 
+For development or test environments requiring the in-process mock router and fixtures:
+
+```bash
+pip install "gli4py[mock]"
+```
+
 ---
 
 ## Quick Start

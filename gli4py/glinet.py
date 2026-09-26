@@ -21,7 +21,7 @@ from uplink import (
     timeout,
 )
 
-from gli4py.models import TailscaleConnection
+from gli4py.models import ClientInterface, TailscaleConnection
 
 from .error_handling import (
     APIClientError,
@@ -340,16 +340,22 @@ class GLinet(Consumer):
             self.gen_sid_payload("call", ["lan", "get_static_bind_list"], self.sid)
         )
 
-    async def connected_clients(self) -> ConnectedClients:
+    async def connected_clients(
+        self, interface: ClientInterface | str | None = None
+    ) -> ConnectedClients:
         """Gets all connected clients asynchronously.
 
+        Optionally filters clients by interface (e.g. ClientInterface.CABLE,
+        ClientInterface.BAND_5G, or a raw string).
         Returns a dictionary with MAC address as key and client data as value.
         """
         clients: ConnectedClients = {}
         all_clients = await self.list_all_clients()
+        filter_iface = str(interface) if interface is not None else None
         for client in all_clients.get("clients", []):
             if client.get("online") is True:
-                clients[client["mac"]] = client
+                if filter_iface is None or client.get("iface") == filter_iface:
+                    clients[client["mac"]] = client
         return clients
 
     async def _wifi_config_get(self) -> WifiConfigResponse:

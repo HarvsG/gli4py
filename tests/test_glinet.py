@@ -10,7 +10,14 @@ from gli4py.error_codes import ERROR_CODES
 from gli4py.error_handling import APIClientError
 from gli4py.glinet import NEW_VPN_CLIENT_VERSION, GLinet
 from gli4py.helpers import normalize_url
-from gli4py.models import TailscaleConnection
+from gli4py.models import (
+    ClientInterface,
+    ModemSimState,
+    ModemStatus,
+    TailscaleConnection,
+    WifiBand,
+    WifiEncryption,
+)
 
 # ─── Initialization & Properties ───
 
@@ -391,6 +398,51 @@ async def test_connected_clients_filtering() -> None:
 
 
 @pytest.mark.asyncio
+async def test_connected_clients_filtering_by_interface() -> None:
+    """Test connected_clients filtering by ClientInterface or raw string."""
+    client = GLinet(sid="test_sid")
+    mock_all_clients = {
+        "clients": [
+            {
+                "mac": "AA:BB:CC:11:22:33",
+                "name": "laptop",
+                "online": True,
+                "iface": "cable",
+            },
+            {
+                "mac": "AA:BB:CC:44:55:66",
+                "name": "phone",
+                "online": True,
+                "iface": "5G",
+            },
+            {
+                "mac": "AA:BB:CC:77:88:99",
+                "name": "iot",
+                "online": True,
+                "iface": "2.4G",
+            },
+            {
+                "mac": "AA:BB:CC:AA:BB:CC",
+                "name": "offline",
+                "online": False,
+                "iface": "cable",
+            },
+        ]
+    }
+    with patch.object(
+        client, "list_all_clients", new=AsyncMock(return_value=mock_all_clients)
+    ):
+        cable_clients = await client.connected_clients(ClientInterface.CABLE)
+        assert list(cable_clients.keys()) == ["AA:BB:CC:11:22:33"]
+
+        wifi_5g_clients = await client.connected_clients(ClientInterface.BAND_5G)
+        assert list(wifi_5g_clients.keys()) == ["AA:BB:CC:44:55:66"]
+
+        raw_str_clients = await client.connected_clients("2.4G")
+        assert list(raw_str_clients.keys()) == ["AA:BB:CC:77:88:99"]
+
+
+@pytest.mark.asyncio
 async def test_ping() -> None:
     """Test ping returns boolean based on whether stdout is empty list."""
     client = GLinet(sid="test_sid")
@@ -495,6 +547,26 @@ def test_tailscale_connection_enum_members() -> None:
     assert TailscaleConnection.AUTHORIZATION_REQUIRED.value == 2
     assert TailscaleConnection.CONNECTED.value == 3
     assert TailscaleConnection.CONNECTING.value == 4
+
+
+def test_models_enum_members() -> None:
+    """Verify models StrEnum values and members."""
+    assert ClientInterface.CABLE == "cable"
+    assert ClientInterface.BAND_5G == "5G"
+    assert ClientInterface.BAND_2_4G == "2.4G"
+    assert ClientInterface.WIFI_2G == "wifi2g"
+    assert ClientInterface.WIFI_5G == "wifi5g"
+    assert WifiBand.BAND_2G == "2G"
+    assert WifiBand.BAND_5G == "5G"
+    assert WifiBand.BAND_6G == "6G"
+    assert WifiBand.BAND_2_4G == "2.4G"
+    assert WifiEncryption.PSK2 == "psk2"
+    assert WifiEncryption.NONE == "none"
+    assert WifiEncryption.SAE_MIXED == "sae-mixed"
+    assert ModemStatus.REGISTERED == "registered"
+    assert ModemStatus.SEARCHING == "searching"
+    assert ModemSimState.READY == "ready"
+    assert ModemSimState.NOT_INSERTED == "not_inserted"
 
 
 def test_error_codes_dictionary() -> None:

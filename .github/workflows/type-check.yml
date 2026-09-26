@@ -33,7 +33,7 @@ jobs:
           cache: "poetry"
 
       - name: Install dependencies
-        run: poetry install --no-interaction
+        run: poetry install --all-extras --no-interaction
 
       - name: Run Mypy Strict
         run: poetry run mypy --strict gli4py
