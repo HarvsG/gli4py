@@ -12,8 +12,9 @@ import argparse
 import asyncio
 import json
 import sys
+from dataclasses import fields
 from pathlib import Path
-from typing import Any
+from typing import Any, get_args, get_origin
 
 import pytest
 from typeguard import check_type
@@ -76,25 +77,45 @@ FIXTURE_TYPE_MAPPING: dict[str, Any] = {
 
 
 def validate_payload_compliance(data: Any, expected_type: Any) -> None:
-    """Validate that data strictly conforms to the expected TypedDict or type."""
-    # 1. Typeguard runtime type validation
-    check_type(data, expected_type)
+    """Validate that data strictly conforms to the expected model or type."""
+    origin = get_origin(expected_type)
 
-    # 2. Strict key verification for TypedDicts
-    if isinstance(data, dict) and hasattr(expected_type, "__annotations__"):
-        expected_keys = set(expected_type.__annotations__.keys())
-        actual_keys = set(data.keys())
-        extra_keys = actual_keys - expected_keys
+    # 1. Dataclass deserialization and validation via mashumaro
+    if isinstance(data, dict) and hasattr(expected_type, "from_dict"):
+        inst = expected_type.from_dict(data)
+        check_type(inst, expected_type)
+        expected_keys = {
+            f.metadata.get("alias") or f.name for f in fields(expected_type)
+        }
+        extra_keys = set(data.keys()) - expected_keys
         if extra_keys:
             raise ValueError(
                 f"Data has undocumented keys not in {expected_type.__name__}: {extra_keys}"
             )
-        required_keys = getattr(expected_type, "__required_keys__", expected_keys)
-        missing_keys = required_keys - actual_keys
-        if missing_keys:
-            raise ValueError(
-                f"Data is missing required keys in {expected_type.__name__}: {missing_keys}"
-            )
+        return
+
+    if isinstance(data, list) and origin is list:
+        args = get_args(expected_type)
+        if args and hasattr(args[0], "from_dict"):
+            item_cls = args[0]
+            inst_list = [
+                item_cls.from_dict(x) if isinstance(x, dict) else x for x in data
+            ]
+            check_type(inst_list, expected_type)
+            expected_keys = {
+                f.metadata.get("alias") or f.name for f in fields(item_cls)
+            }
+            for item in data:
+                if isinstance(item, dict):
+                    extra_keys = set(item.keys()) - expected_keys
+                    if extra_keys:
+                        raise ValueError(
+                            f"Data has undocumented keys not in {item_cls.__name__}: {extra_keys}"
+                        )
+            return
+
+    # 2. If data is already an instantiated dataclass or typed structure
+    check_type(data, expected_type)
 
 
 @pytest.mark.parametrize("fixture_name,expected_type", FIXTURE_TYPE_MAPPING.items())
