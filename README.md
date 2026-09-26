@@ -48,6 +48,9 @@ GL.iNet routers are built on [OpenWrt](https://openwrt.org/), providing extensiv
   - **WireGuard**: List client configurations, retrieve active connection status, and start/stop WireGuard clients with automated schema adaptation across firmware versions (< 4.8 and >= 4.8).
   - **Tailscale**: Check Tailscale connection state, configuration, and start or stop the Tailscale service.
 
+- **Typing**
+  - From version 0.1.0 all responses are typed at runtime meaning that your consumers can be sure that they are receiving the objects they hope for. This makes writing software a self-documenting doddle
+
 ---
 
 ## Installation
