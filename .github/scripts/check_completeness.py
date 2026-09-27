@@ -77,6 +77,8 @@ METHOD_RPC_MAP: dict[str, list[tuple[Any, ...]]] = {
     "modem_info": [("call", "modem", "get_info")],
     "modem_sim_info": [("call", "modem", "get_sim_info")],
     "modem_sim_signal": [("call", "modem", "get_sim_signal")],
+    "led_get_config": [("call", "led", "get_config")],
+    "led_set": [("call", "led", "set_config", {"led_enable": True})],
     # Pure utility payload generators (no network call)
     "gen_sid_payload": [],
     "gen_no_auth_payload": [],
@@ -100,6 +102,7 @@ ENDPOINT_FIXTURE_MAP: dict[tuple[str, str], str] = {
     ("modem", "get_info"): "modem_info.json",
     ("modem", "get_sim_info"): "modem_sim.json",
     ("modem", "get_sim_signal"): "modem_sim_signal.json",
+    ("led", "get_config"): "led_config.json",
 }
 
 

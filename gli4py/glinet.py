@@ -29,6 +29,7 @@ from gli4py.models import (
     ConnectedClients,
     EdgeRouterStatusResponse,
     EmptyResponse,
+    LedConfigResponse,
     LoginResponse,
     MaccloneResponse,
     ModemInfoResponse,
@@ -413,6 +414,21 @@ class GLinet(Consumer):
                 {"enabled": enabled, "iface_name": iface_name}
             )
         raise ValueError("iface_name does not exist")
+
+    async def led_get_config(self) -> LedConfigResponse:
+        """Retrieves the router's LED indicator configuration."""
+        raw = await self._request(
+            self.gen_sid_payload("call", ["led", "get_config"], self.sid)
+        )
+        return LedConfigResponse.from_dict(raw)
+
+    async def led_set(self, enabled: bool) -> EmptyResponse:
+        """Enable / disable the router's LED indicators."""
+        return await self._request(
+            self.gen_sid_payload(
+                "call", ["led", "set_config", {"led_enable": enabled}], self.sid
+            )
+        )
 
     # VPN information
 

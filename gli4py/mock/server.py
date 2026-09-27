@@ -426,7 +426,13 @@ class MockRouter:
                 return copy.deepcopy(self.firewall_zones)
             return None
         if module == "led":
-            return copy.deepcopy(self.led_config) if func == "get_config" else None
+            if func == "get_config":
+                return copy.deepcopy(self.led_config)
+            if func == "set_config":
+                if isinstance(opt_args, dict) and "led_enable" in opt_args:
+                    self.led_config["led_enable"] = bool(opt_args["led_enable"])
+                return {}
+            return None
         if module == "ddns":
             if func == "get_config":
                 return copy.deepcopy(self.ddns_config)

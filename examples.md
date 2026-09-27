@@ -353,6 +353,24 @@ Triggers a system restart (`system/reboot`):
 {}
 ```
 
+#### `led_get_config()`
+Invocation: `await router.led_get_config()` (tested in `tests/test_api.py::test_led_get_config`)
+
+Returns whether the router's status LEDs are enabled (`led/get_config`):
+```json
+{
+   "led_enable": true
+}
+```
+
+#### `led_set()`
+Invocation: `await router.led_set(True)` (tested in `tests/test_api.py::test_led_set`)
+
+Enables or disables the router's status LEDs via `led/set_config`:
+```json
+{}
+```
+
 ---
 
 ### 3.3 Clients & Static Bindings

@@ -29,6 +29,7 @@ GL.iNet routers are built on [OpenWrt](https://openwrt.org/), providing extensiv
   - Retrieve router model, MAC address, and firmware version.
   - Query CPU load, free memory, and real-time network traffic status.
   - Trigger graceful router reboot with optional delay.
+  - Read and toggle the router's status LED indicators.
 
 - **Network & Client Monitoring**
   - List active connected clients with real-time bandwidth and signal stats.
