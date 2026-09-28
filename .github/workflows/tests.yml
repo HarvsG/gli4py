@@ -1,0 +1,58 @@
+name: Tests
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13", "3.14", "ha-core"]
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v7
+
+      - name: Ensure Poetry is installed
+        run: |
+          if ! command -v poetry &> /dev/null; then
+            pipx install poetry
+          fi
+
+      - name: Resolve Python version
+        id: resolve-python
+        run: |
+          if [ "${{ matrix.python-version }}" = "ha-core" ]; then
+            HA_VER=$(curl -sSfL https://raw.githubusercontent.com/home-assistant/core/refs/heads/dev/.python-version | tr -d '[:space:]')
+            echo "version=$HA_VER" >> "$GITHUB_OUTPUT"
+            echo "Resolved Home Assistant Core Python version: $HA_VER"
+          else
+            echo "version=${{ matrix.python-version }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ steps.resolve-python.outputs.version }}
+          cache: "poetry"
+
+      - name: Install dependencies
+        run: poetry install --all-extras --no-interaction
+
+      - name: Run tests
+        run: poetry run pytest --disruptive-tests --cov=gli4py --cov-report=term-missing --cov-report=xml --cov-fail-under=78
+
+      - name: Verify package build
+        run: poetry build --no-interaction

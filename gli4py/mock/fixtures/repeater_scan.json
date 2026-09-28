@@ -1,0 +1,28 @@
+{
+  "res": [
+    {
+      "band": "2g",
+      "bssid": "00:11:22:AA:BB:CC",
+      "channel": 6,
+      "encryption": {
+        "description": "WPA2 PSK (CCMP)",
+        "enabled": true,
+        "uci": "psk2"
+      },
+      "signal": -60,
+      "ssid": "MockNeighborWiFi"
+    },
+    {
+      "band": "5g",
+      "bssid": "00:11:22:AA:BB:CD",
+      "channel": 36,
+      "encryption": {
+        "description": "WPA3 SAE (CCMP)",
+        "enabled": true,
+        "uci": "sae"
+      },
+      "signal": -72,
+      "ssid": "MockNeighbor5G"
+    }
+  ]
+}

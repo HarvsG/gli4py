@@ -1,0 +1,15 @@
+{
+  "ips": [
+    {
+      "interface": "wan",
+      "ip": [
+        "192.168.1.150"
+      ]
+    },
+    {
+      "interface": "wan6",
+      "ip": []
+    }
+  ],
+  "status": 2
+}

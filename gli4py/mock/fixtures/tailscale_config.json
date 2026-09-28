@@ -1,0 +1,6 @@
+{
+  "enabled": false,
+  "lan_enabled": true,
+  "lan_ip": "192.168.8.0/24",
+  "wan_enabled": false
+}

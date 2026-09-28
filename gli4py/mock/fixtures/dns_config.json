@@ -1,0 +1,6 @@
+{
+  "force_dns": false,
+  "mode": "auto",
+  "rebind_protection": true,
+  "server": ["8.8.8.8", "1.1.1.1"]
+}

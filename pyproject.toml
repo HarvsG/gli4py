@@ -1,29 +1,86 @@
 [tool.poetry]
 name = "gli4py"
-version = "0.0.15"
+version = "0.1.0-beta.5"
 description = "A python 3 API wrapper for GL-inet routers for consumption by Home Assistant"
 authors = ["HarvsG <doctor@codingdoctor.co.uk>"]
 license = "GNU GENERAL PUBLIC LICENSE"
 readme = "README.md"
 packages = [{include = "gli4py"}]
 
+[tool.poetry.scripts]
+gli-enumerate = "gli4py.enumeration:main"
+
 [tool.poetry.dependencies]
 python = "^3.11"
 uplink = "0.10.0"
-passlib = "^1.7.4"
+libpass = "^1.8.0"
 semver = "^3.0.0"
+aiohttp = { version = ">=3.8.4", optional = true }
+mashumaro = ">=3.14"
+
+[tool.poetry.extras]
+mock = ["aiohttp"]
 
 [tool.poetry.group.dev.dependencies]
-uplink = "^0.10.0"
 requests = "^2.27.1"
-aiohttp = "^3.8.4"
-asyncio = "^3.4.3"
 json2json = "^0.1.0"
-pytest = "^7.2.2"
-pytest-asyncio = "^0.21.0"
+pytest = ">=7.2.2"
+pytest-asyncio = ">=0.24.0"
+pytest-cov = ">=5.0.0"
+ruff = ">=0.9.0"
+pre-commit = ">=4.0.0"
+mypy = ">=1.15.0"
+types-passlib = ">=1.7.7"
+typeguard = ">=4.0.0"
+
+[tool.mypy]
+python_version = "3.14"
+strict = true
+check_untyped_defs = true
+disallow_incomplete_defs = true
+warn_unused_ignores = true
+ignore_missing_imports = true
+files = ["gli4py"]
+
+# uplink lacks PEP 561 stubs, causing untyped decorator/subclassing errors: https://github.com/prkumar/uplink/issues/181
+[[tool.mypy.overrides]]
+module = "gli4py.glinet"
+disallow_subclassing_any = false
+disallow_untyped_decorators = false
+disallow_untyped_calls = false
+warn_return_any = false
+
+[tool.pylint.design]
+max-args = 7
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "-p no:homeassistant"
+markers = [
+    "live: tests that require a physical GL.iNet router (pass --live to run)",
+    "disruptive: tests that modify router configuration or reboot (pass --disruptive-tests to run)",
+]
 
+[tool.ruff]
+target-version = "py311"
+line-length = 88
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "W",   # pycodestyle warnings
+    "I",   # isort
+    "UP",  # pyupgrade
+]
+ignore = [
+    "E501", # line length handled by formatter
+]
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
