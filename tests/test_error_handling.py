@@ -8,6 +8,8 @@ from gli4py.error_handling import (
     APIClientError,
     AuthenticationError,
     LockoutError,
+    MethodNotFound,
+    MethodNotFoundError,
     NonZeroResponse,
     TokenError,
     UnsuccessfulRequest,
@@ -29,6 +31,13 @@ def test_exception_hierarchy() -> None:
     # LockoutError is an AuthenticationError
     assert issubclass(LockoutError, AuthenticationError)
     assert issubclass(LockoutError, NonZeroResponse)
+
+    # MethodNotFoundError is NonZeroResponse, NOT an AuthenticationError or TokenError
+    assert issubclass(MethodNotFoundError, NonZeroResponse)
+    assert issubclass(MethodNotFoundError, APIClientError)
+    assert not issubclass(MethodNotFoundError, AuthenticationError)
+    assert not issubclass(MethodNotFoundError, TokenError)
+    assert MethodNotFound is MethodNotFoundError
 
 
 @pytest.mark.asyncio
@@ -92,8 +101,26 @@ async def test_raise_for_status_lockout_error() -> None:
 
 
 @pytest.mark.asyncio
+async def test_raise_for_status_method_not_found_error() -> None:
+    """Test code -32601 raises MethodNotFoundError and alias MethodNotFound."""
+    mock_resp = MagicMock()
+    mock_resp.status = 200
+    mock_resp.json = AsyncMock(
+        return_value={"error": {"code": -32601, "message": "Method not found"}}
+    )
+
+    with pytest.raises(MethodNotFoundError) as exc_info:
+        await raise_for_status(mock_resp)
+    assert "code -32601" in str(exc_info.value)
+    assert isinstance(exc_info.value, MethodNotFound)
+    assert isinstance(exc_info.value, NonZeroResponse)
+    assert not isinstance(exc_info.value, AuthenticationError)
+    assert not isinstance(exc_info.value, TokenError)
+
+
+@pytest.mark.asyncio
 async def test_raise_for_status_generic_non_zero() -> None:
-    """Test negative error code other than -1, -32000, -32003 raises NonZeroResponse."""
+    """Test negative error code other than -1, -32000, -32003, -32601 raises NonZeroResponse."""
     mock_resp = MagicMock()
     mock_resp.status = 200
     mock_resp.json = AsyncMock(

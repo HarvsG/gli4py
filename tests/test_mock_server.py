@@ -10,6 +10,7 @@ from uplink import AiohttpClient
 from gli4py.error_handling import (
     AuthenticationError,
     LockoutError,
+    MethodNotFoundError,
     NonZeroResponse,
     TokenError,
 )
@@ -403,7 +404,7 @@ async def test_additional_endpoints_coverage() -> None:
             assert ddns_st["status"] == 2
 
             # Unknown method returns -32601
-            with pytest.raises(NonZeroResponse) as exc_info:
+            with pytest.raises(MethodNotFoundError) as exc_info:
                 await client._request(
                     client.gen_sid_payload(
                         "call", ["nonexistent", "method"], client.sid

@@ -29,6 +29,14 @@ class LockoutError(AuthenticationError):
     """Raised when login is locked out due to exceeding failed login limit."""
 
 
+class MethodNotFoundError(NonZeroResponse):
+    """Raised when the requested RPC method is not found on the router."""
+
+
+# Alias for convenience and backward/forward compatibility
+MethodNotFound = MethodNotFoundError
+
+
 async def raise_for_status(response: ClientResponse) -> object:
     """Checks whether or not the response was successful."""
     # 1. Safely read the body as JSON, falling back to text if it's HTML
@@ -71,6 +79,10 @@ async def raise_for_status(response: ClientResponse) -> object:
                     )
                 if code == -32003:
                     raise LockoutError(f"Request returned error code -32003 ({msg})")
+                if code == -32601:
+                    raise MethodNotFoundError(
+                        f"Request returned error code -32601 ({msg})"
+                    )
                 if code < 0:
                     raise NonZeroResponse(
                         f"Request returned error code {code} with message: {msg}"
@@ -87,6 +99,8 @@ __all__ = [
     "APIClientError",
     "AuthenticationError",
     "LockoutError",
+    "MethodNotFound",
+    "MethodNotFoundError",
     "NonZeroResponse",
     "TokenError",
     "UnsuccessfulRequest",
