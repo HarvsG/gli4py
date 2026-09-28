@@ -368,7 +368,7 @@ Invocation: `await router.led_set(True)` (tested in `tests/test_api.py::test_led
 
 Enables or disables the router's status LEDs via `led/set_config`:
 ```json
-{}
+[]
 ```
 
 ---
