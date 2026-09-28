@@ -164,6 +164,34 @@ async def test_wifi_ifaces_set_enabled(router: GLinet, disruptive_tests: bool) -
         await router.wifi_iface_set_enabled(iface.get("name"), iface_enabled)
 
 
+async def test_led_get_config(router: GLinet) -> None:
+    """Test retrieving the LED configuration."""
+    if not router.logged_in:
+        pytest.skip("Router not logged in")
+    config = await router.led_get_config()
+    print(config)
+    assert "led_enable" in config
+    assert isinstance(config.get("led_enable"), bool)
+
+
+async def test_led_set(router: GLinet) -> None:
+    """Test toggling the router LEDs, leaving them in their original state."""
+    if not router.logged_in:
+        pytest.skip("Router not logged in")
+
+    original = (await router.led_get_config()).get("led_enable")
+    try:
+        await router.led_set(not original)
+        await asyncio.sleep(1)
+        assert (await router.led_get_config()).get("led_enable") != original
+
+        await router.led_set(original)
+        await asyncio.sleep(1)
+        assert (await router.led_get_config()).get("led_enable") == original
+    finally:
+        await router.led_set(original)
+
+
 async def test_connected_to_internet(router: GLinet) -> None:
     """Test checking if the router is connected to the internet."""
     if not router.logged_in:
