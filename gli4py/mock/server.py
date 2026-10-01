@@ -181,7 +181,7 @@ class MockRouter:
         """Clear all active sessions."""
         self.sessions.clear()
 
-    async def _handle_rpc(self, request: web.Request) -> web.Response:
+    async def _handle_rpc(self, request: web.Request) -> web.StreamResponse:
         """Handle incoming POST /rpc JSON-RPC requests."""
         if self.rebooting:
             return web.Response(status=503, text="Router Rebooting")
@@ -218,7 +218,10 @@ class MockRouter:
         if method == "logout":
             return web.json_response(self._handle_logout(req_id, params))
         if method == "call":
-            return web.json_response(self._handle_call(req_id, params))
+            res = self._handle_call(req_id, params)
+            if isinstance(res, web.StreamResponse):
+                return res
+            return web.json_response(res)
 
         return web.json_response(
             {
@@ -308,7 +311,9 @@ class MockRouter:
             del self.sessions[sid]
         return {"jsonrpc": "2.0", "id": req_id, "result": None}
 
-    def _handle_call(self, req_id: Any, params: Any) -> dict[str, Any]:
+    def _handle_call(
+        self, req_id: Any, params: Any
+    ) -> dict[str, Any] | web.StreamResponse:
         """Process authenticated JSON-RPC module call."""
         if not isinstance(params, list) or len(params) < 3:
             return {
@@ -352,6 +357,10 @@ class MockRouter:
         override = self._endpoint_overrides.get((module, func))
         if override is not None:
             res = override(opt_args) if callable(override) else override
+            if isinstance(res, web.StreamResponse):
+                return res
+            if isinstance(res, dict) and ("jsonrpc" in res or "error" in res):
+                return res
             return {"jsonrpc": "2.0", "id": req_id, "result": res}
 
         # Dispatch module calls
