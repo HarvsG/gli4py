@@ -338,7 +338,7 @@ class MockRouter:
                 "error": {"code": -32000, "message": "Access denied"},
             }
 
-        if self.token_ttl > 0 and (now - self.sessions[sid] > self.token_ttl):
+        if 0 < self.token_ttl < now - self.sessions[sid]:
             del self.sessions[sid]
             return {
                 "jsonrpc": "2.0",
