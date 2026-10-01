@@ -42,6 +42,8 @@ METHOD_RPC_MAP: dict[str, list[tuple[Any, ...]]] = {
     "list_all_clients": [("call", "clients", "get_list")],
     "list_static_clients": [("call", "lan", "get_static_bind_list")],
     "connected_clients": [("call", "clients", "get_list")],
+    "all_clients": [("call", "clients", "get_list")],
+    "disconnected_clients": [("call", "clients", "get_list")],
     "wifi_ifaces_get": [("call", "wifi", "get_config")],
     "wifi_iface_set_enabled": [
         (
