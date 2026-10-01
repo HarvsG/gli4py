@@ -202,7 +202,7 @@ class BaseModel(Mapping[str, Any], DataClassDictMixin):
 
     def __bool__(self) -> bool:
         return any(
-            val is not None and val != "" and val != [] and val != {}
+            val is not None and val != "" and val != [] and bool(val)
             for val in self.values()
         )
 
@@ -210,6 +210,8 @@ class BaseModel(Mapping[str, Any], DataClassDictMixin):
         if isinstance(other, type(self)):
             return self.__dict__ == other.__dict__
         if isinstance(other, Mapping):
+            if not other:
+                return not self
             return all(self.get(k) == v for k, v in other.items())
         return False
 
