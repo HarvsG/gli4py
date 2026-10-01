@@ -23,10 +23,12 @@ from uplink import (
 )
 
 from gli4py.models import (
+    AllClients,
     ChallengeResponse,
     ClientInterface,
     ClientsResponse,
     ConnectedClients,
+    DisconnectedClients,
     EdgeRouterStatusResponse,
     EmptyResponse,
     LedConfigResponse,
@@ -346,7 +348,7 @@ class GLinet(Consumer):
         return EdgeRouterStatusResponse.from_dict(raw)
 
     async def list_all_clients(self) -> ClientsResponse:
-        """Gets all clients connected to the router."""
+        """Gets all raw client entries from the router."""
         raw = await self._request(
             self.gen_sid_payload("call", ["clients", "get_list"], self.sid)
         )
@@ -359,20 +361,55 @@ class GLinet(Consumer):
         )
         return StaticBindListResponse.from_dict(raw)
 
+    async def all_clients(
+        self, interface: ClientInterface | str | None = None
+    ) -> AllClients:
+        """Gets all clients (both online and offline) asynchronously.
+
+        Optionally filters clients by interface (e.g. ClientInterface.CABLE,
+        ClientInterface.BAND_5G, or a raw string).
+        Returns a dictionary with MAC address as key and client data as value.
+        """
+        clients: AllClients = {}
+        resp = await self.list_all_clients()
+        filter_iface = str(interface) if interface is not None else None
+        for client in resp.clients:
+            if filter_iface is None or client.iface == filter_iface:
+                clients[client.mac] = client
+        return clients
+
     async def connected_clients(
         self, interface: ClientInterface | str | None = None
     ) -> ConnectedClients:
-        """Gets all connected clients asynchronously.
+        """Gets all connected (online) clients asynchronously.
 
         Optionally filters clients by interface (e.g. ClientInterface.CABLE,
         ClientInterface.BAND_5G, or a raw string).
         Returns a dictionary with MAC address as key and client data as value.
         """
         clients: ConnectedClients = {}
-        all_clients = await self.list_all_clients()
+        resp = await self.list_all_clients()
         filter_iface = str(interface) if interface is not None else None
-        for client in all_clients.clients:
+        for client in resp.clients:
             if client.online is True:
+                if filter_iface is None or client.iface == filter_iface:
+                    clients[client.mac] = client
+        return clients
+
+    async def disconnected_clients(
+        self, interface: ClientInterface | str | None = None
+    ) -> DisconnectedClients:
+        """Gets all disconnected (offline) clients asynchronously.
+
+        Optionally filters clients by interface (e.g. ClientInterface.CABLE,
+        ClientInterface.BAND_5G, or a raw string).
+        Returns a dictionary with MAC address as key and client data as value.
+        """
+        clients: DisconnectedClients = {}
+        resp = await self.list_all_clients()
+        filter_iface = str(interface) if interface is not None else None
+        for client in resp.clients:
+            if client.online is False:
                 if filter_iface is None or client.iface == filter_iface:
                     clients[client.mac] = client
         return clients
