@@ -375,10 +375,11 @@ Enables or disables the router's status LEDs via `led/set_config`:
 
 ### 3.3 Clients & Static Bindings
 
-#### `connected_clients()`
+#### `all_clients()`, `connected_clients()` and `disconnected_clients()`
 Invocation: `await router.connected_clients()` (tested in `tests/test_api.py::test_connected_clients`)
 
-Returns online clients filtered from `clients/get_list` and indexed by MAC address:
+Returns online clients optionally filtered by interface from `clients/get_list` and indexed by MAC address.
+`connected_clients()` and `disconnected_clients()` are further filtered by `"online" == true`/`"online" == false` respectively
 ```json
 {
   "A1:B2:C3:D4:E5:F6": {
