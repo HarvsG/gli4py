@@ -471,8 +471,8 @@ Returns online clients optionally filtered by interface from `clients/get_list` 
 }
 ```
 
-#### `list_all_clients()`
-Invocation: `await router.list_all_clients()` (tested in `tests/test_api.py::test_clients`)
+#### `_list_all_clients()`
+Invocation: `await router._list_all_clients()` (tested in `tests/test_api.py::test_clients`)
 
 Unfiltered list of all clients (online and offline) from `clients/get_list`:
 ```json
