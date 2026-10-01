@@ -164,11 +164,15 @@ async def test_processed_method_outputs_compliance() -> None:
         clients = await client.connected_clients()
         validate_payload_compliance(clients, types.ConnectedClients)
 
-        # 7. list_all_clients()
-        all_clients = await client.list_all_clients()
-        validate_payload_compliance(all_clients, types.ClientsResponse)
+        # 7. all_clients()
+        all_c = await client.all_clients()
+        validate_payload_compliance(all_c, types.AllClients)
 
-        # 8. list_static_clients()
+        # 8. disconnected_clients()
+        disc_c = await client.disconnected_clients()
+        validate_payload_compliance(disc_c, types.DisconnectedClients)
+
+        # 9. list_static_clients()
         static_clients = await client.list_static_clients()
         validate_payload_compliance(static_clients, types.StaticBindListResponse)
 

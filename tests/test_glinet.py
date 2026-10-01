@@ -394,7 +394,7 @@ async def test_connected_clients_filtering() -> None:
     }
     with patch.object(
         client,
-        "list_all_clients",
+        "_list_all_clients",
         new=AsyncMock(return_value=ClientsResponse.from_dict(mock_all_clients)),
     ):
         online = await client.connected_clients()
@@ -437,7 +437,7 @@ async def test_connected_clients_filtering_by_interface() -> None:
     }
     with patch.object(
         client,
-        "list_all_clients",
+        "_list_all_clients",
         new=AsyncMock(return_value=ClientsResponse.from_dict(mock_all_clients)),
     ):
         cable_clients = await client.connected_clients(ClientInterface.CABLE)
@@ -591,3 +591,31 @@ def test_helpers_normalize_url() -> None:
     assert normalize_url("192.168.0.4") == "http://192.168.0.4/rpc"
     assert normalize_url("http://192.168.0.4/") == "http://192.168.0.4/rpc"
     assert normalize_url("https://192.168.0.4:8443") == "https://192.168.0.4:8443/rpc"
+
+
+@pytest.mark.asyncio
+async def test_all_clients_and_disconnected_clients() -> None:
+    """Test all_clients and disconnected_clients methods."""
+    client = GLinet(sid="test_sid")
+    mock_all_clients = {
+        "clients": [
+            {"mac": "AA:BB:CC:11:22:33", "name": "laptop", "online": True},
+            {"mac": "AA:BB:CC:44:55:66", "name": "phone", "online": False},
+            {"mac": "AA:BB:CC:77:88:99", "name": "tv", "online": True},
+        ]
+    }
+    with patch.object(
+        client,
+        "_list_all_clients",
+        new=AsyncMock(return_value=ClientsResponse.from_dict(mock_all_clients)),
+    ):
+        all_c = await client.all_clients()
+        assert set(all_c.keys()) == {
+            "AA:BB:CC:11:22:33",
+            "AA:BB:CC:44:55:66",
+            "AA:BB:CC:77:88:99",
+        }
+
+        offline_c = await client.disconnected_clients()
+        assert set(offline_c.keys()) == {"AA:BB:CC:44:55:66"}
+        assert offline_c["AA:BB:CC:44:55:66"]["name"] == "phone"

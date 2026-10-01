@@ -13,6 +13,7 @@ from typing import Literal, NotRequired, TypeAlias, TypedDict
 from . import models
 from .models import (
     AdguardHomeConfigResponse,
+    AllClients,
     ArpListEntry,
     ArpListResponse,
     BaseModel,
@@ -30,6 +31,7 @@ from .models import (
     DdnsStatusResponse,
     DhcpLeaseEntry,
     DhcpLeasesResponse,
+    DisconnectedClients,
     DnsConfigResponse,
     EdgeRouterStatusResponse,
     EmptyResponse,

@@ -491,7 +491,9 @@ class ClientsResponse(BaseModel):
     clients: list[ClientEntry] = field(default_factory=list)
 
 
+AllClients: TypeAlias = dict[str, ClientEntry]
 ConnectedClients: TypeAlias = dict[str, ClientEntry]
+DisconnectedClients: TypeAlias = dict[str, ClientEntry]
 
 
 @dataclass(eq=False)
@@ -1016,6 +1018,7 @@ __all__ = [
     "CableStatusIpv4",
     "CableStatusResponse",
     "CableStatusSecondWan",
+    "AllClients",
     "ChallengeResponse",
     "ClientEntry",
     "ClientInterface",
@@ -1027,6 +1030,7 @@ __all__ = [
     "DdnsStatusResponse",
     "DhcpLeaseEntry",
     "DhcpLeasesResponse",
+    "DisconnectedClients",
     "DnsConfigResponse",
     "EdgeRouterStatusResponse",
     "EmptyResponse",
