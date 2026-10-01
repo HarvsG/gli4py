@@ -149,12 +149,12 @@ async def test_glinet_methods_return_dataclass_instances() -> None:
         assert edge.valid is True
         assert edge.gateway == "192.168.1.1"
 
-    # 3. _list_all_clients
+    # 3. list_all_clients
     fake_clients = {
         "clients": [{"mac": "11:22:33:44:55:66", "ip": "192.168.1.10", "online": True}]
     }
     with patch.object(client, "_request", new=AsyncMock(return_value=fake_clients)):
-        all_clients = await client._list_all_clients()
+        all_clients = await client.list_all_clients()
         assert isinstance(all_clients, ClientsResponse)
         assert len(all_clients.clients) == 1
         assert isinstance(all_clients.clients[0], ClientEntry)
@@ -282,7 +282,7 @@ async def test_unexpected_response_structure_rejection() -> None:
         client, "_request", new=AsyncMock(return_value=bad_clients_response)
     ):
         with pytest.raises(InvalidFieldValue):
-            await client._list_all_clients()
+            await client.list_all_clients()
 
 
 def test_debug_logging_extra_and_missing_keys(caplog: pytest.LogCaptureFixture) -> None:

@@ -347,7 +347,7 @@ class GLinet(Consumer):
         )
         return EdgeRouterStatusResponse.from_dict(raw)
 
-    async def _list_all_clients(self) -> ClientsResponse:
+    async def list_all_clients(self) -> ClientsResponse:
         """Gets all raw client entries from the router."""
         raw = await self._request(
             self.gen_sid_payload("call", ["clients", "get_list"], self.sid)
@@ -371,7 +371,7 @@ class GLinet(Consumer):
         Returns a dictionary with MAC address as key and client data as value.
         """
         clients: AllClients = {}
-        resp = await self._list_all_clients()
+        resp = await self.list_all_clients()
         filter_iface = str(interface) if interface is not None else None
         for client in resp.clients:
             if filter_iface is None or client.iface == filter_iface:
@@ -388,7 +388,7 @@ class GLinet(Consumer):
         Returns a dictionary with MAC address as key and client data as value.
         """
         clients: ConnectedClients = {}
-        resp = await self._list_all_clients()
+        resp = await self.list_all_clients()
         filter_iface = str(interface) if interface is not None else None
         for client in resp.clients:
             if client.online is True:
@@ -406,7 +406,7 @@ class GLinet(Consumer):
         Returns a dictionary with MAC address as key and client data as value.
         """
         clients: DisconnectedClients = {}
-        resp = await self._list_all_clients()
+        resp = await self.list_all_clients()
         filter_iface = str(interface) if interface is not None else None
         for client in resp.clients:
             if client.online is False:

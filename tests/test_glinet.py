@@ -394,7 +394,7 @@ async def test_connected_clients_filtering() -> None:
     }
     with patch.object(
         client,
-        "_list_all_clients",
+        "list_all_clients",
         new=AsyncMock(return_value=ClientsResponse.from_dict(mock_all_clients)),
     ):
         online = await client.connected_clients()
@@ -437,7 +437,7 @@ async def test_connected_clients_filtering_by_interface() -> None:
     }
     with patch.object(
         client,
-        "_list_all_clients",
+        "list_all_clients",
         new=AsyncMock(return_value=ClientsResponse.from_dict(mock_all_clients)),
     ):
         cable_clients = await client.connected_clients(ClientInterface.CABLE)
@@ -606,7 +606,7 @@ async def test_all_clients_and_disconnected_clients() -> None:
     }
     with patch.object(
         client,
-        "_list_all_clients",
+        "list_all_clients",
         new=AsyncMock(return_value=ClientsResponse.from_dict(mock_all_clients)),
     ):
         all_c = await client.all_clients()
