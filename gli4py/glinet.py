@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, Literal, TypeVar
+from typing import TYPE_CHECKING, Literal, TypeVar
 
 from aiohttp import ClientError, ClientSession
 from passlib.hash import md5_crypt, sha256_crypt, sha512_crypt
@@ -24,7 +24,6 @@ from uplink import (
 
 from gli4py.models import (
     AllClients,
-    BaseModel,
     ChallengeResponse,
     ClientInterface,
     ClientsResponse,
@@ -361,14 +360,13 @@ class GLinet(Consumer):
 
     async def set_port_forward(
         self,
-        rule: PortForwardRule | Mapping[str, Any],
+        rule: PortForwardRule,
     ) -> EmptyResponse:
         """Updates a port forwarding rule on the router."""
-        payload = rule.to_dict() if isinstance(rule, BaseModel) else dict(rule)
         return await self._request(
             self.gen_sid_payload(
                 "call",
-                ["firewall", "set_port_forward", payload],
+                ["firewall", "set_port_forward", rule.to_dict()],
                 self.sid,
             )
         )
