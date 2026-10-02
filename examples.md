@@ -591,10 +591,15 @@ Returns static DHCP reservations from `lan/get_static_bind_list`:
 }
 ```
 
-#### `client_block()`
-Invocation: `await router.client_block("B8:27:EB:44:55:66", block=True)`
+#### `block_client()`
+Invocation: `await router.block_client("B8:27:EB:44:55:66", block=True)`
 
 Blocks or unblocks a client device's internet access by MAC address via JSON-RPC endpoint `clients.block_client`.
+
+Returns empty list `[]` on success:
+```json
+[]
+```
 
 ---
 

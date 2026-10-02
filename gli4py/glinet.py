@@ -61,6 +61,7 @@ from .error_handling import (
     AuthenticationError,
     raise_for_status,
 )
+from .helpers import format_mac
 
 if TYPE_CHECKING:
     from gli4py.types import (
@@ -384,6 +385,17 @@ class GLinet(Consumer):
             self.gen_sid_payload("call", ["lan", "get_static_bind_list"], self.sid)
         )
         return StaticBindListResponse.from_dict(raw)
+
+    async def block_client(self, mac: str, block: bool = True) -> EmptyResponse:
+        """Block or unblock internet access for a client device by MAC address."""
+        formatted_mac = format_mac(mac)
+        return await self._request(
+            self.gen_sid_payload(
+                "call",
+                ["clients", "block_client", {"mac": formatted_mac, "block": block}],
+                self.sid,
+            )
+        )
 
     async def all_clients(
         self, interface: ClientInterface | str | None = None
