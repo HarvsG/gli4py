@@ -627,10 +627,17 @@ Returns a typed `PortForwardListResponse` containing configured port forwarding 
 }
 ```
 
+> [!WARNING]
+> **OpenWrt UCI Anonymous Section IDs (`cfg...`)**
+> In OpenWrt/GL-iNet firmware, port forwarding rules (`config redirect` in `/etc/config/firewall`) are anonymous sections without fixed names. `libuci` generates section IDs on the fly based on sequence/counter (e.g. `cfg2a3837`, `cfg2b3837`, `cfg2c3837`).
+>
+> If a rule is deleted, all subsequent rules shift positions and acquire new section IDs. For instance, if rule 0 (`cfg2a3837`) is deleted, rule 1 dynamically inherits `id="cfg2a3837"`.
+> Calling `set_port_forward()` with a stale cached ID after a deletion will overwrite whichever rule shifted into that slot. Always re-fetch rules with `get_port_forward_list()` or match by rule name before calling `set_port_forward()`.
+
 #### `set_port_forward()`
 Invocation: `await router.set_port_forward(rule)` (tested in `tests/test_api.py::test_set_port_forward`)
 
-Updates a port forwarding rule via JSON-RPC endpoint `firewall.set_port_forward`. Pass the complete `PortForwardRule` object or `PortForwardSetParams` TypedDict to preserve all UCI parameters.
+Updates a port forwarding rule via JSON-RPC endpoint `firewall.set_port_forward`. Pass the complete `PortForwardRule` object or `PortForwardSetParams` TypedDict with a fresh `id` from `get_port_forward_list()`.
 
 ---
 

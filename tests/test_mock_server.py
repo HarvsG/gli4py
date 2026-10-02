@@ -444,6 +444,64 @@ async def test_mock_port_forward() -> None:
 
 
 @pytest.mark.asyncio
+async def test_mock_port_forward_anonymous_section_reindex_overwrite_bug() -> None:
+    """Replicate and document the OpenWrt UCI anonymous section re-indexing overwrite bug.
+
+    When rule 0 ('test', 'cfg2a3837') is deleted on the router, subsequent rule 1
+    ('test2', 'cfg2b3837') shifts to index 0 and inherits 'cfg2a3837'.
+    If a consumer then sends set_port_forward using the stale rule 0 (still having id='cfg2a3837'),
+    the router updates section 'cfg2a3837', thereby overwriting rule 1 ('test2') with rule 0 ('test')!
+    """
+    async with MockRouter() as mock:
+        uplink_client = AiohttpClient()
+        client = GLinet(base_url=mock.url, client=uplink_client)
+        try:
+            await client.login(username="root", password="goodlife")
+            pf_list = await client.get_port_forward_list()
+            assert len(pf_list.rules) >= 2
+            rule0 = pf_list.rules[0]
+            rule1 = pf_list.rules[1]
+
+            assert rule0.id == "cfg2a3837"
+            assert rule0.name == "test"
+            assert rule1.id == "cfg2b3837"
+            assert rule1.name == "test2"
+
+            # Cache rule0 as stale client-side data
+            stale_rule0 = rule0
+
+            # Step 1: Delete rule 0 from router via RPC
+            await client._request(
+                client.gen_sid_payload(
+                    "call",
+                    ["firewall", "remove_port_forward", {"id": rule0.id}],
+                    client.sid,
+                )
+            )
+
+            # Step 2: In OpenWrt UCI, rule 1 ('test2') shifts up and inherits 'cfg2a3837'
+            after_del = await client.get_port_forward_list()
+            assert len(after_del.rules) == len(pf_list.rules) - 1
+            shifted_rule1 = after_del.rules[0]
+            assert shifted_rule1.name == "test2"
+            assert shifted_rule1.id == "cfg2a3837"  # Inherited shifted section ID!
+
+            # Step 3: Consumer calls set_port_forward using stale_rule0 (with id='cfg2a3837')
+            # to enable it
+            stale_rule0.enabled = True
+            await client.set_port_forward(stale_rule0)
+
+            # Step 4: Rule 1 ('test2') was overwritten on the router by stale_rule0!
+            overwritten_list = await client.get_port_forward_list()
+            rule_at_slot = overwritten_list.rules[0]
+            assert rule_at_slot.id == "cfg2a3837"
+            assert rule_at_slot.name == "test"  # Overwritten!
+        finally:
+            session = await uplink_client.session()
+            await session.close()
+
+
+@pytest.mark.asyncio
 async def test_mock_client_block() -> None:
     """Verify that MockRouter updates client blocked status when block_client is called."""
     async with MockRouter() as mock:
