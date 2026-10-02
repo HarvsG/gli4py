@@ -591,6 +591,42 @@ Returns static DHCP reservations from `lan/get_static_bind_list`:
 }
 ```
 
+#### `client_block()`
+Invocation: `await router.client_block("B8:27:EB:44:55:66", block=True)`
+
+Blocks or unblocks a client device's internet access by MAC address via JSON-RPC endpoint `clients.block_client`.
+
+---
+
+### 3.4 Firewall & Port Forwarding
+
+#### `get_port_forward_list()`
+Invocation: `await router.get_port_forward_list()` (tested in `tests/test_api.py::test_get_port_forward_list`)
+
+Returns a typed `PortForwardListResponse` containing configured port forwarding rules:
+```json
+{
+  "res": [
+    {
+      "enabled": true,
+      "src_dport": "1234",
+      "id": "cfg2a3837",
+      "dest_ip": "192.168.0.160",
+      "dest_port": 1234,
+      "name": "test",
+      "src": "wan",
+      "dest": "lan",
+      "proto": "tcp udp"
+    }
+  ]
+}
+```
+
+#### `set_port_forward()`
+Invocation: `await router.set_port_forward(rule)` (tested in `tests/test_api.py::test_set_port_forward`)
+
+Updates a port forwarding rule via JSON-RPC endpoint `firewall.set_port_forward`. Pass the complete `PortForwardRule` object or `PortForwardSetParams` TypedDict to preserve all UCI parameters.
+
 ---
 
 ### 3.4 Wi-Fi Management

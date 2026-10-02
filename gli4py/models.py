@@ -878,6 +878,33 @@ class FirewallZonesResponse(BaseModel):
 
 
 @dataclass(eq=False)
+class PortForwardRule(BaseModel):
+    """Port forwarding rule configuration in router firewall."""
+
+    id: str = ""
+    name: str = ""
+    enabled: bool = False
+    src: str = "wan"
+    dest: str = "lan"
+    src_dport: str = ""
+    dest_ip: str = ""
+    dest_port: int | str = 0
+    proto: str = ""
+
+
+@dataclass(eq=False)
+class PortForwardListResponse(BaseModel):
+    """Response payload for firewall.get_port_forward_list endpoint."""
+
+    res: list[PortForwardRule] = field(default_factory=list)
+
+    @property
+    def rules(self) -> list[PortForwardRule]:
+        """Alias for res list."""
+        return self.res
+
+
+@dataclass(eq=False)
 class DdnsConfigResponse(BaseModel):
     """Response payload for ddns.get_config endpoint."""
 
@@ -1039,6 +1066,8 @@ __all__ = [
     "EmptyResponseDict",
     "FirewallWanAccessResponse",
     "FirewallZonesResponse",
+    "PortForwardListResponse",
+    "PortForwardRule",
     "LanConfigResponse",
     "LanInterfaceEntry",
     "LedConfigResponse",

@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Literal, TypeVar
+from typing import TYPE_CHECKING, Any, Literal, TypeVar
 
 from aiohttp import ClientError, ClientSession
 from passlib.hash import md5_crypt, sha256_crypt, sha512_crypt
@@ -24,6 +24,7 @@ from uplink import (
 
 from gli4py.models import (
     AllClients,
+    BaseModel,
     ChallengeResponse,
     ClientInterface,
     ClientsResponse,
@@ -37,6 +38,8 @@ from gli4py.models import (
     ModemInfoResponse,
     ModemSimInfoEntry,
     ModemSimSignalEntry,
+    PortForwardListResponse,
+    PortForwardRule,
     RouterStatusResponse,
     StaticBindListResponse,
     SystemInfoResponse,
@@ -63,6 +66,7 @@ from .error_handling import (
 if TYPE_CHECKING:
     from gli4py.types import (
         JsonRpcRequestPayload,
+        PortForwardSetParams,
         TailscaleSetConfigParams,
         WifiConfigSetParams,
     )
@@ -346,6 +350,29 @@ class GLinet(Consumer):
             self.gen_sid_payload("call", ["edgerouter", "get_status"], self.sid)
         )
         return EdgeRouterStatusResponse.from_dict(raw)
+
+    async def get_port_forward_list(self) -> PortForwardListResponse:
+        """Gets all port forwarding rules configured on the router."""
+        raw = await self._request(
+            self.gen_sid_payload(
+                "call", ["firewall", "get_port_forward_list"], self.sid
+            )
+        )
+        return PortForwardListResponse.from_dict(raw)
+
+    async def set_port_forward(
+        self,
+        rule: PortForwardRule | PortForwardSetParams | Mapping[str, Any],
+    ) -> EmptyResponse:
+        """Updates a port forwarding rule on the router."""
+        payload = rule.to_dict() if isinstance(rule, BaseModel) else dict(rule)
+        return await self._request(
+            self.gen_sid_payload(
+                "call",
+                ["firewall", "set_port_forward", payload],
+                self.sid,
+            )
+        )
 
     async def list_all_clients(self) -> ClientsResponse:
         """Gets all raw client entries from the router."""

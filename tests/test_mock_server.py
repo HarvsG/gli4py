@@ -414,3 +414,30 @@ async def test_additional_endpoints_coverage() -> None:
         finally:
             session = await uplink_client.session()
             await session.close()
+
+
+@pytest.mark.asyncio
+async def test_mock_port_forward() -> None:
+    """Verify that MockRouter lists and updates port forwarding rules."""
+    async with MockRouter() as mock:
+        uplink_client = AiohttpClient()
+        client = GLinet(base_url=mock.url, client=uplink_client)
+        try:
+            await client.login(username="root", password="goodlife")
+            pf_list = await client.get_port_forward_list()
+            assert len(pf_list.rules) >= 2
+            rule = pf_list.rules[0]
+            assert rule.id == "cfg2a3837"
+            assert rule.enabled is True
+
+            # Disable rule
+            rule.enabled = False
+            await client.set_port_forward(rule)
+
+            updated = await client.get_port_forward_list()
+            updated_rule = next(r for r in updated.rules if r.id == rule.id)
+            assert updated_rule.enabled is False
+            assert updated_rule.name == "test"
+        finally:
+            session = await uplink_client.session()
+            await session.close()
