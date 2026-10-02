@@ -441,3 +441,33 @@ async def test_mock_port_forward() -> None:
         finally:
             session = await uplink_client.session()
             await session.close()
+
+
+@pytest.mark.asyncio
+async def test_mock_client_block() -> None:
+    """Verify that MockRouter updates client blocked status when block_client is called."""
+    async with MockRouter() as mock:
+        uplink_client = AiohttpClient()
+        client = GLinet(base_url=mock.url, client=uplink_client)
+        try:
+            await client.login(username="root", password="goodlife")
+            all_cls = await client.list_all_clients()
+            assert len(all_cls.clients) > 0
+            mac = all_cls.clients[0].mac
+            assert all_cls.clients[0].blocked is False
+
+            # Block using unformatted (hyphenated / lowercase) MAC
+            hyphen_mac = mac.replace(":", "-").lower()
+            await client.block_client(hyphen_mac, block=True)
+            blocked_cls = await client.list_all_clients()
+            target = next(c for c in blocked_cls.clients if c.mac == mac)
+            assert target.blocked is True
+
+            # Unblock
+            await client.block_client(mac, block=False)
+            unblocked_cls = await client.list_all_clients()
+            target_ub = next(c for c in unblocked_cls.clients if c.mac == mac)
+            assert target_ub.blocked is False
+        finally:
+            session = await uplink_client.session()
+            await session.close()

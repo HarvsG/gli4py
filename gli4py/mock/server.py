@@ -384,7 +384,7 @@ class MockRouter:
         if module == "macclone":
             return self.macclone if func == "get_mac" else None
         if module == "clients":
-            return self.clients if func == "get_list" else None
+            return self._dispatch_clients(func, opt_args)
         if module == "lan":
             if func == "get_static_bind_list":
                 return copy.deepcopy(self.lan_static)
@@ -510,6 +510,26 @@ class MockRouter:
             f"PING {addr} 56(84) bytes of data.",
             f"64 bytes from {addr}: icmp_seq=1 ttl=116 time=12.3 ms",
         ]
+
+    def _dispatch_clients(self, func: str, opt_args: Any) -> Any:
+        """Process clients module calls."""
+        if func == "get_list":
+            return self.clients
+        if func == "block_client":
+            if not isinstance(opt_args, dict) or "mac" not in opt_args:
+                return []
+            mac = opt_args["mac"]
+            block = bool(opt_args.get("block", True))
+            clients_list = (
+                self.clients.get("clients", [])
+                if isinstance(self.clients, dict)
+                else []
+            )
+            for client in clients_list:
+                if client.get("mac") == mac:
+                    client["blocked"] = block
+            return []
+        return None
 
     def _dispatch_wg_client(self, func: str, opt_args: Any) -> Any:
         """Handle WireGuard client calls."""

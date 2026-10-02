@@ -202,14 +202,27 @@ PortForwardSetParams: TypeAlias = PortForwardRule
 """Parameters for firewall.set_port_forward call (alias to PortForwardRule)."""
 
 
+class ClientBlockParams(TypedDict):
+    """Parameters for clients.block_client call."""
+
+    mac: str
+    block: bool
+
+
+MacAddress: TypeAlias = str
+"""Colon-delimited 6-octet MAC address string (e.g., '28:CD:C1:06:77:67')."""
+
+
 __all__ = [
     *models.__all__,
     "ChallengeParams",
+    "ClientBlockParams",
     "JsonRpcError",
     "JsonRpcRequestPayload",
     "JsonRpcResponse",
     "JsonRpcResult",
     "LoginParams",
+    "MacAddress",
     "PingParams",
     "PortForwardSetParams",
     "RebootParams",

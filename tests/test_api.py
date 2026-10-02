@@ -125,6 +125,31 @@ async def test_connected_clients(router: GLinet) -> None:
     assert len(clients) > 0
 
 
+@pytest.mark.disruptive
+async def test_block_client(router: GLinet, disruptive_tests: bool) -> None:
+    """Test blocking and unblocking a client by MAC address."""
+    if not disruptive_tests:
+        pytest.skip("Disruptive tests are disabled (pass --disruptive-tests to run)")
+    if not router.logged_in:
+        pytest.skip("Router not logged in")
+
+    all_cls = await router.list_all_clients()
+    assert len(all_cls.clients) > 0
+    target_mac = all_cls.clients[0].mac
+
+    # Block client
+    await router.block_client(target_mac, block=True)
+    res_blocked = await router.list_all_clients()
+    target_client = next(c for c in res_blocked.clients if c.mac == target_mac)
+    assert target_client.blocked is True
+
+    # Unblock client
+    await router.block_client(target_mac, block=False)
+    res_unblocked = await router.list_all_clients()
+    target_client_ub = next(c for c in res_unblocked.clients if c.mac == target_mac)
+    assert target_client_ub.blocked is False
+
+
 async def test_wifi_ifaces_get(router: GLinet) -> None:
     """Test retrieving WiFi interfaces."""
     if not router.logged_in:

@@ -41,6 +41,9 @@ METHOD_RPC_MAP: dict[str, list[tuple[Any, ...]]] = {
     "connected_to_internet": [("call", "edgerouter", "get_status")],
     "list_all_clients": [("call", "clients", "get_list")],
     "list_static_clients": [("call", "lan", "get_static_bind_list")],
+    "block_client": [
+        ("call", "clients", "block_client", {"mac": "B8:27:EB:44:55:66", "block": True})
+    ],
     "connected_clients": [("call", "clients", "get_list")],
     "all_clients": [("call", "clients", "get_list")],
     "disconnected_clients": [("call", "clients", "get_list")],
