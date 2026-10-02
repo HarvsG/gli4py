@@ -44,6 +44,25 @@ METHOD_RPC_MAP: dict[str, list[tuple[Any, ...]]] = {
     "connected_clients": [("call", "clients", "get_list")],
     "all_clients": [("call", "clients", "get_list")],
     "disconnected_clients": [("call", "clients", "get_list")],
+    "get_port_forward_list": [("call", "firewall", "get_port_forward_list")],
+    "set_port_forward": [
+        (
+            "call",
+            "firewall",
+            "set_port_forward",
+            {
+                "id": "cfg2a3837",
+                "name": "test",
+                "enabled": True,
+                "src": "wan",
+                "dest": "lan",
+                "src_dport": "1234",
+                "dest_ip": "192.168.0.160",
+                "dest_port": 1234,
+                "proto": "tcp udp",
+            },
+        )
+    ],
     "wifi_ifaces_get": [("call", "wifi", "get_config")],
     "wifi_iface_set_enabled": [
         (
@@ -105,6 +124,7 @@ ENDPOINT_FIXTURE_MAP: dict[tuple[str, str], str] = {
     ("modem", "get_sim_info"): "modem_sim.json",
     ("modem", "get_sim_signal"): "modem_sim_signal.json",
     ("led", "get_config"): "led_config.json",
+    ("firewall", "get_port_forward_list"): "port_forward_list.json",
 }
 
 

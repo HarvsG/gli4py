@@ -55,6 +55,8 @@ from .models import (
     OvpnGroupConfig,
     OvpnListEntry,
     OvpnStatusResponse,
+    PortForwardListResponse,
+    PortForwardRule,
     RepeaterConfigResponse,
     RepeaterScanEncryption,
     RepeaterScanEntry,
