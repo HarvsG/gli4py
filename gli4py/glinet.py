@@ -37,6 +37,8 @@ from gli4py.models import (
     ModemInfoResponse,
     ModemSimInfoEntry,
     ModemSimSignalEntry,
+    PortForwardListResponse,
+    PortForwardRule,
     RouterStatusResponse,
     StaticBindListResponse,
     SystemInfoResponse,
@@ -346,6 +348,28 @@ class GLinet(Consumer):
             self.gen_sid_payload("call", ["edgerouter", "get_status"], self.sid)
         )
         return EdgeRouterStatusResponse.from_dict(raw)
+
+    async def get_port_forward_list(self) -> PortForwardListResponse:
+        """Gets all port forwarding rules configured on the router."""
+        raw = await self._request(
+            self.gen_sid_payload(
+                "call", ["firewall", "get_port_forward_list"], self.sid
+            )
+        )
+        return PortForwardListResponse.from_dict(raw)
+
+    async def set_port_forward(
+        self,
+        rule: PortForwardRule,
+    ) -> EmptyResponse:
+        """Updates a port forwarding rule on the router."""
+        return await self._request(
+            self.gen_sid_payload(
+                "call",
+                ["firewall", "set_port_forward", rule.to_dict()],
+                self.sid,
+            )
+        )
 
     async def list_all_clients(self) -> ClientsResponse:
         """Gets all raw client entries from the router."""

@@ -421,6 +421,43 @@ async def test_tailscale_stop(router: GLinet, disruptive_tests: bool) -> None:
     assert result in [True, False]
 
 
+async def test_get_port_forward_list(router: GLinet) -> None:
+    """Test retrieving port forwarding rules."""
+    if not router.logged_in:
+        pytest.skip("Router not logged in")
+    pf_list = await router.get_port_forward_list()
+    assert isinstance(pf_list.res, list)
+    assert isinstance(pf_list.rules, list)
+
+
+@pytest.mark.disruptive
+async def test_set_port_forward(router: GLinet, disruptive_tests: bool) -> None:
+    """Test updating a port forwarding rule."""
+    if not disruptive_tests:
+        pytest.skip("Disruptive tests are disabled (pass --disruptive-tests to run)")
+    if not router.logged_in:
+        pytest.skip("Router not logged in")
+
+    pf_list = await router.get_port_forward_list()
+    if not pf_list.rules:
+        pytest.skip("No port forwarding rules configured")
+
+    rule = pf_list.rules[0]
+    orig_enabled = rule.enabled
+
+    # Toggle rule
+    rule.enabled = not orig_enabled
+    await router.set_port_forward(rule)
+
+    updated = await router.get_port_forward_list()
+    updated_rule = next(r for r in updated.rules if r.id == rule.id)
+    assert updated_rule.enabled is not orig_enabled
+
+    # Restore original state
+    rule.enabled = orig_enabled
+    await router.set_port_forward(rule)
+
+
 @pytest.mark.disruptive
 async def test_router_reboot(
     router: GLinet,

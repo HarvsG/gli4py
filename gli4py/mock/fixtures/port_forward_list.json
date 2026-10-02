@@ -1,0 +1,24 @@
+[
+  {
+    "enabled": true,
+    "src_dport": "1234",
+    "id": "cfg2a3837",
+    "dest_ip": "192.168.0.160",
+    "dest_port": 1234,
+    "name": "test",
+    "src": "wan",
+    "dest": "lan",
+    "proto": "tcp udp"
+  },
+  {
+    "enabled": false,
+    "src_dport": "5000",
+    "id": "cfg2b3837",
+    "dest_ip": "192.168.0.161",
+    "dest_port": 5000,
+    "name": "test2",
+    "src": "wan",
+    "dest": "lan",
+    "proto": "tcp"
+  }
+]

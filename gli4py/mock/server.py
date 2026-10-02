@@ -121,6 +121,7 @@ class MockRouter:
         self.arp_list = self._loader.load("arp_list")
         self.firewall_wan_access = self._loader.load("firewall_wan_access")
         self.firewall_zones = self._loader.load("firewall_zones")
+        self.port_forward_list = self._loader.load("port_forward_list")
         self.led_config = self._loader.load("led_config")
         self.ddns_config = self._loader.load("ddns_config")
         self.ddns_status = self._loader.load("ddns_status")
@@ -433,6 +434,15 @@ class MockRouter:
                 return copy.deepcopy(self.firewall_wan_access)
             if func == "get_zone_list":
                 return copy.deepcopy(self.firewall_zones)
+            if func == "get_port_forward_list":
+                return {"res": copy.deepcopy(self.port_forward_list)}
+            if func == "set_port_forward":
+                if isinstance(opt_args, dict) and "id" in opt_args:
+                    rule_id = opt_args["id"]
+                    for rule in self.port_forward_list:
+                        if rule.get("id") == rule_id:
+                            rule.update(opt_args)
+                return []
             return None
         if module == "led":
             if func == "get_config":

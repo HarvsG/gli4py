@@ -55,6 +55,8 @@ from .models import (
     OvpnGroupConfig,
     OvpnListEntry,
     OvpnStatusResponse,
+    PortForwardListResponse,
+    PortForwardRule,
     RepeaterConfigResponse,
     RepeaterScanEncryption,
     RepeaterScanEntry,
@@ -196,6 +198,10 @@ class TailscaleSetConfigParams(TypedDict, total=False):
     wan_enabled: bool
 
 
+PortForwardSetParams: TypeAlias = PortForwardRule
+"""Parameters for firewall.set_port_forward call (alias to PortForwardRule)."""
+
+
 __all__ = [
     *models.__all__,
     "ChallengeParams",
@@ -205,6 +211,7 @@ __all__ = [
     "JsonRpcResult",
     "LoginParams",
     "PingParams",
+    "PortForwardSetParams",
     "RebootParams",
     "TailscaleSetConfigParams",
     "VpnClientSetTunnelParams",
