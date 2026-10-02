@@ -66,7 +66,6 @@ from .error_handling import (
 if TYPE_CHECKING:
     from gli4py.types import (
         JsonRpcRequestPayload,
-        PortForwardSetParams,
         TailscaleSetConfigParams,
         WifiConfigSetParams,
     )
@@ -362,7 +361,7 @@ class GLinet(Consumer):
 
     async def set_port_forward(
         self,
-        rule: PortForwardRule | PortForwardSetParams | Mapping[str, Any],
+        rule: PortForwardRule | Mapping[str, Any],
     ) -> EmptyResponse:
         """Updates a port forwarding rule on the router."""
         payload = rule.to_dict() if isinstance(rule, BaseModel) else dict(rule)

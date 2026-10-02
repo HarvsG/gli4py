@@ -198,18 +198,8 @@ class TailscaleSetConfigParams(TypedDict, total=False):
     wan_enabled: bool
 
 
-class PortForwardSetParams(TypedDict):
-    """Parameters for firewall.set_port_forward call."""
-
-    id: str
-    name: str
-    enabled: bool
-    src: str
-    dest: str
-    src_dport: str
-    dest_ip: str
-    dest_port: int | str
-    proto: str
+PortForwardSetParams: TypeAlias = PortForwardRule
+"""Parameters for firewall.set_port_forward call (alias to PortForwardRule)."""
 
 
 __all__ = [

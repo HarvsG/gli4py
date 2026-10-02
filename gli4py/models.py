@@ -881,15 +881,15 @@ class FirewallZonesResponse(BaseModel):
 class PortForwardRule(BaseModel):
     """Port forwarding rule configuration in router firewall."""
 
-    id: str = ""
-    name: str = ""
-    enabled: bool = False
-    src: str = "wan"
-    dest: str = "lan"
-    src_dport: str = ""
-    dest_ip: str = ""
-    dest_port: int | str = 0
-    proto: str = ""
+    id: str
+    name: str
+    enabled: bool
+    src: str
+    dest: str
+    src_dport: str
+    dest_ip: str
+    dest_port: int | str
+    proto: str
 
 
 @dataclass(eq=False)
