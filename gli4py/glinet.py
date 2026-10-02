@@ -351,7 +351,13 @@ class GLinet(Consumer):
         return EdgeRouterStatusResponse.from_dict(raw)
 
     async def get_port_forward_list(self) -> PortForwardListResponse:
-        """Gets all port forwarding rules configured on the router."""
+        """Gets all port forwarding rules configured on the router.
+
+        Note:
+            Rule IDs returned by this method (e.g., `cfg2a3837`, `cfg2b3837`) are OpenWrt
+            anonymous section identifiers generated on the fly. If any rule is removed,
+            subsequent rules will shift positions and their IDs will change.
+        """
         raw = await self._request(
             self.gen_sid_payload(
                 "call", ["firewall", "get_port_forward_list"], self.sid
@@ -363,7 +369,18 @@ class GLinet(Consumer):
         self,
         rule: PortForwardRule,
     ) -> EmptyResponse:
-        """Updates a port forwarding rule on the router."""
+        """Updates a port forwarding rule on the router.
+
+        Warning:
+            In OpenWrt/GL-iNet firmware, port forward rule IDs (e.g. `cfg2a3837`) are
+            ephemeral anonymous section identifiers assigned dynamically based on sequence
+            in `/etc/config/firewall`. If preceding rules are deleted, remaining rules shift
+            indices and acquire new section IDs.
+
+            Always ensure `rule.id` matches the current ID from `get_port_forward_list()`
+            prior to calling `set_port_forward`. If a rule was deleted on the router, passing
+            a stale `rule.id` may overwrite a different rule that shifted into that slot.
+        """
         return await self._request(
             self.gen_sid_payload(
                 "call",

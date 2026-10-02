@@ -879,7 +879,23 @@ class FirewallZonesResponse(BaseModel):
 
 @dataclass(eq=False)
 class PortForwardRule(BaseModel):
-    """Port forwarding rule configuration in router firewall."""
+    """Port forwarding rule configuration in router firewall.
+
+    Note on `id`:
+        In OpenWrt's UCI configuration (`/etc/config/firewall`), port forward rules
+        (`config redirect`) are anonymous sections without persistent names. OpenWrt's
+        `libuci` generates section IDs dynamically on the fly based on sequence/counter
+        (e.g., `cfg2a3837`, `cfg2b3837`, ...).
+
+        Consequently, `id` is NOT a persistent unique identifier across router rule deletions.
+        When any preceding rule is removed or re-ordered, subsequent rules shift indices and
+        dynamically inherit new anonymous section IDs.
+
+        When modifying rules with `GLinet.set_port_forward`, always ensure the rule's `id`
+        is freshly fetched from `get_port_forward_list()`. Calling `set_port_forward` with
+        a stale `id` after another rule was deleted can overwrite the rule that shifted into
+        that index.
+    """
 
     id: str
     name: str

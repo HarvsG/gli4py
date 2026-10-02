@@ -443,6 +443,25 @@ class MockRouter:
                         if rule.get("id") == rule_id:
                             rule.update(opt_args)
                 return []
+
+            if func == "remove_port_forward":
+                if isinstance(opt_args, dict) and "id" in opt_args:
+                    target_id = opt_args["id"]
+                    # OpenWrt UCI Anonymous Section Re-indexing Bug / Behavior:
+                    # In OpenWrt `/etc/config/firewall`, port forward rules (`config redirect`)
+                    # are anonymous sections. libuci dynamically hashes/assigns IDs based on
+                    # the section's position. When a rule is removed, subsequent rules shift
+                    # up, and libuci renumbers their anonymous section IDs (cfg2a..., cfg2b...).
+                    #
+                    # Consequently, if a consumer calls `set_port_forward` using a stale cached ID
+                    # for the deleted rule, it will match and overwrite whichever remaining rule
+                    # shifted into that anonymous section ID.
+                    self.port_forward_list = [
+                        r for r in self.port_forward_list if r.get("id") != target_id
+                    ]
+                    for idx, rule in enumerate(self.port_forward_list):
+                        rule["id"] = f"cfg{hex(0x2A + idx)[2:]}3837"
+                return []
             return None
         if module == "led":
             if func == "get_config":
