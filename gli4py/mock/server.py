@@ -549,6 +549,8 @@ class MockRouter:
                 )
                 if clients_list:
                     clients_list[0]["name"] = "__NON_UTF8_NAME__"
+                    if len(clients_list) > 1:
+                        clients_list[1]["name"] = "Café"
                 else:
                     clients_list.append(
                         {

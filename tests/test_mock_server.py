@@ -545,8 +545,11 @@ async def test_mock_non_utf8_client_response_decoding() -> None:
         try:
             await client.login(username="root", password="goodlife")
             all_clients = await client.list_all_clients()
-            assert len(all_clients.clients) > 0
-            assert "Ren" in all_clients.clients[0].name
+            assert len(all_clients.clients) >= 2
+            # Client with Latin-1 0xE1 should preserve accented character 'á'
+            assert all_clients.clients[0].name == "Rená"
+            # Client with valid multi-byte UTF-8 should remain uncorrupted
+            assert all_clients.clients[1].name == "Café"
         finally:
             session = await uplink_client.session()
             await session.close()
