@@ -529,3 +529,24 @@ async def test_mock_client_block() -> None:
         finally:
             session = await uplink_client.session()
             await session.close()
+
+
+@pytest.mark.asyncio
+async def test_mock_non_utf8_client_response_unicode_decode_error() -> None:
+    """Recreate ha-glinet4-integration issue #247: non-UTF-8 client name raises UnicodeDecodeError.
+
+    When a client device advertises a hostname with non-UTF-8 bytes (e.g. Latin-1 0xE1 'á'),
+    the router outputs those bytes directly in the clients.get_list response.
+    gli4py's strict UTF-8 decoding currently raises UnicodeDecodeError.
+    """
+    async with MockRouter(simulate_non_utf8_client=True) as mock:
+        uplink_client = AiohttpClient()
+        client = GLinet(base_url=mock.url, client=uplink_client)
+        try:
+            await client.login(username="root", password="goodlife")
+            with pytest.raises(UnicodeDecodeError) as exc_info:
+                await client.list_all_clients()
+            assert "0xe1" in str(exc_info.value)
+        finally:
+            session = await uplink_client.session()
+            await session.close()

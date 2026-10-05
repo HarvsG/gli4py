@@ -3,6 +3,7 @@
 
 import asyncio
 import copy
+import json
 import threading
 import time
 import uuid
@@ -49,6 +50,7 @@ class MockRouter:
         lockout_duration: float = 300.0,
         token_ttl: float = 1800.0,
         simulate_delays: bool = False,
+        simulate_non_utf8_client: bool = False,
         reboot_duration: float = 0.1,
         fixtures_dir: Path | str | None = None,
         host: str = "127.0.0.1",
@@ -63,6 +65,7 @@ class MockRouter:
         self.lockout_duration = lockout_duration
         self.token_ttl = token_ttl
         self.simulate_delays = simulate_delays
+        self.simulate_non_utf8_client = simulate_non_utf8_client
         self.reboot_duration = reboot_duration
         self.host = host
         self.port = port
@@ -365,17 +368,21 @@ class MockRouter:
             return {"jsonrpc": "2.0", "id": req_id, "result": res}
 
         # Dispatch module calls
-        result = self._dispatch_module(module, func, opt_args)
+        result = self._dispatch_module(module, func, opt_args, req_id)
         if result is None:
             return {
                 "jsonrpc": "2.0",
                 "id": req_id,
                 "error": {"code": -32601, "message": "Method not found"},
             }
+        if isinstance(result, web.StreamResponse):
+            return result
 
         return {"jsonrpc": "2.0", "id": req_id, "result": result}
 
-    def _dispatch_module(self, module: str, func: str, opt_args: Any) -> Any:
+    def _dispatch_module(
+        self, module: str, func: str, opt_args: Any, req_id: Any = 0
+    ) -> Any:
         """Dispatch module function to corresponding mock handler."""
         if module == "system":
             return self._dispatch_system(func, opt_args)
@@ -384,7 +391,7 @@ class MockRouter:
         if module == "macclone":
             return self.macclone if func == "get_mac" else None
         if module == "clients":
-            return self._dispatch_clients(func, opt_args)
+            return self._dispatch_clients(func, opt_args, req_id)
         if module == "lan":
             if func == "get_static_bind_list":
                 return copy.deepcopy(self.lan_static)
@@ -530,9 +537,42 @@ class MockRouter:
             f"64 bytes from {addr}: icmp_seq=1 ttl=116 time=12.3 ms",
         ]
 
-    def _dispatch_clients(self, func: str, opt_args: Any) -> Any:
+    def _dispatch_clients(self, func: str, opt_args: Any, req_id: Any = 0) -> Any:
         """Process clients module calls."""
         if func == "get_list":
+            if self.simulate_non_utf8_client:
+                clients_copy = copy.deepcopy(self.clients)
+                clients_list = (
+                    clients_copy.get("clients", [])
+                    if isinstance(clients_copy, dict)
+                    else []
+                )
+                if clients_list:
+                    clients_list[0]["name"] = "__NON_UTF8_NAME__"
+                else:
+                    clients_list.append(
+                        {
+                            "mac": "00:11:22:33:44:55",
+                            "name": "__NON_UTF8_NAME__",
+                            "ip": "192.168.1.100",
+                            "online": True,
+                        }
+                    )
+                body_bytes = (
+                    json.dumps(
+                        {
+                            "jsonrpc": "2.0",
+                            "id": req_id,
+                            "result": clients_copy,
+                        }
+                    )
+                    .encode("utf-8")
+                    .replace(b"__NON_UTF8_NAME__", b"Ren\xe1")
+                )
+                return web.Response(
+                    body=body_bytes,
+                    content_type="application/json",
+                )
             return self.clients
         if func == "block_client":
             if not isinstance(opt_args, dict) or "mac" not in opt_args:
