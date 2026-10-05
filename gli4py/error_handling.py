@@ -1,8 +1,12 @@
 """This module contains custom exceptions and a function to handle API response status codes."""
 
+import json
+import logging
 from typing import cast
 
 from aiohttp import ClientResponse
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class APIClientError(Exception):
@@ -71,8 +75,24 @@ async def raise_for_status(response: ClientResponse) -> object:
     try:
         # content_type=None forces aiohttp to parse it even if the router sends wrong headers
         raw_res = await response.json(content_type=None)
+    except UnicodeDecodeError:
+        _LOGGER.debug(
+            "Response from %s contained non-UTF-8 characters; falling back to decoding with errors='replace'",
+            response.url,
+        )
+        text = await response.text(errors="replace")
+        try:
+            raw_res = json.loads(text)
+        except Exception as exc:
+            if response.status >= 500:
+                raise ServerError(
+                    f"Router server error (Status {response.status}): {text}"
+                ) from exc
+            raise UnsuccessfulRequest(
+                f"Request failed or returned invalid JSON (Status {response.status}): {text}"
+            ) from exc
     except Exception as exc:
-        text = await response.text()
+        text = await response.text(errors="replace")
         if response.status >= 500:
             raise ServerError(
                 f"Router server error (Status {response.status}): {text}"
