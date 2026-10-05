@@ -225,3 +225,19 @@ async def test_raise_for_status_unsuccessful_http_404() -> None:
     with pytest.raises(UnsuccessfulRequest) as exc_info:
         await raise_for_status(mock_resp)
     assert not isinstance(exc_info.value, ServerError)
+
+
+@pytest.mark.asyncio
+async def test_raise_for_status_non_utf8_json_decoding() -> None:
+    """Test that raise_for_status gracefully decodes non-UTF-8 responses rather than failing."""
+    mock_resp = MagicMock()
+    mock_resp.status = 200
+    mock_resp.json = AsyncMock(
+        side_effect=UnicodeDecodeError(
+            "utf-8", b"\xe1", 0, 1, "invalid continuation byte"
+        )
+    )
+    mock_resp.text = AsyncMock(return_value='{"result": {"foo": "bar"}}')
+
+    result = await raise_for_status(mock_resp)
+    assert result == {"foo": "bar"}
